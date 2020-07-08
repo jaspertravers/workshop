@@ -1,0 +1,9 @@
+#+TITLE: Workshop
+#+AUTHOR: Jasper Travers
+
+** TODO Supporting Sources
+(To fill with links to source material once edited)
+
+** Dependencies
+- https://www.stopify.org/
+- https://codemirror.net/
