@@ -1,9 +1,147 @@
 #+TITLE: Workshop
 #+AUTHOR: Jasper Travers
-
-** TODO Supporting Sources
-(To fill with links to source material once edited)
+** Design
+Borne of a frustration with the inept nature of software tools. Communication, computation, work.
+(todo: edit design docs; insert here)
 
 ** Dependencies
 - https://www.stopify.org/
 - https://codemirror.net/
+- https://prosemirror.net/
+- https://rollupjs.org/guide/en/
+
+* Notes
+** Developtment/Build
+How this is made. How this is built.
+
+*** Development log
+#+BEGIN_SRC sh
+npm init
+
+npm install @stopify/stopify
+npm install @codemirror/next # this will change on v1.0.0 release
+
+npm install prosemirror-model
+npm install prosemirror-state
+npm install prosemirror-view
+npm install prosemirror-transform
+# going to need a few more prosmirror modules; yes these can be space separated
+
+npm install rollup --global
+
+mkdir src public
+touch src/main.js
+touch rollup.config.js
+
+npm install rollup --save-dev # being thorough about building
+# building: npm run build
+
+Need a bundler: either rollup, parcel, webpack, snowpack
+
+# to catch up with rollup-starter-app
+npm install serve --save-dev
+npm install @rollup/plugin-commonjs --save-dev
+npm install @rollup/plugin-node-resolve --save-dev
+npm install rollup-plugin-terser --save-dev
+npm install npm-run-all --save-dev
+
+npm install webpack --save-dev # trying to tame warnings
+
+npm install --save-dev @rollup/plugin-json
+npm install --save-dev rollup-plugin-node-polyfills
+#+END_SRC
+
+Babel Issues:
+#+BEGIN_SRC sh
+npm install @rollup/plugin-babel --save-dev
+npm install @babel/core --save-dev
+npm install ajv --save-dev
+
+npm install babel-loader @babel/core --save-dev
+
+#+END_SRC
+
+I'm going to give up on importing stopify and will instead include the bundle. Uninstalling myriad npm packages I used to try to fix the problem.
+
+#+BEGIN_SRC
+npm uninstall babel-loader @babel/core @rollup/plugin-babel ajv
+#+END_SRC
+
+Copying bundle into place and including in ~public/index.html~, I suppose I could very well remove ~@stopify/stopify~ but I'll leave it for now for followup investigation.
+
+~npm run build~ script set in ~package.json~
+
+backspace on empty editor throws "RangeError"
+
+~view.state.doc.toString()~
+to get string in editor for stopify
+
+
+*** Links
+- https://git-scm.com/book/
+- https://rollupjs.org/guide/en/
+- https://github.com/rollup/rollup-starter-app
+- https://rollupjs.org/guide/en/#quick-start
+
+** Base
+The "thing" this all sits on. Where the components go.
+
+*** Links
+
+** Codemirror
+Code editor.
+
+*** Links
+- https://codemirror.net/6/docs/guide/
+- https://github.com/codemirror/codemirror.next/
+
+** Execution Control
+Towards a live sandbox.
+
+*** Links
+- https://www.stopify.org/
+- https://stopify.readthedocs.io/en/latest/quickstart.html
+
+** Prosemirror
+Content editor.
+
+*** Links
+- https://prosemirror.net/docs/guide/
+
+** Console
+debug/repl style output; printing from code
+
+*** Links
+- https://eloquentjavascript.net/code/
+- https://github.com/marijnh/Eloquent-JavaScript/tree/master/html/js
+
+** Canvas/SVG
+creative coding output
+
+*** Links
+- http://bucephalus.org/text/CanvasHandbook/CanvasHandbook.html
+
+** Explorations
+Tech to check out; capabilities to explore
+
+- git; this repo
+
+*** Links
+- https://github.com/yjs/yjs
+- https://developer.mozilla.org/en-US/docs/Web/API/WebRTC_API
+- https://developer.mozilla.org/en-US/docs/Web/HTML/Element/iframe
+- https://developer.mozilla.org/en-US/docs/Web/Progressive_web_apps
+
+** Inspirations
+Yes, again...
+As always, incomplete.
+
+*** Links
+- https://github.com/hundredrabbits/Ronin
+- https://github.com/damelang/nile
+- http://worrydream.com/refs/Sutherland-Sketchpad.pdf
+- https://paper.dropbox.com/doc/Stamper-An-Artboard-Oriented-Programming-Environment--A4V0v1SHSKMwJb74PRF4eBnPAg-QXtfMXshBFBNCu6iCtx2J
+- https://makespace.fun/
+
+* Footer
+Note: Github does not render ~.org~ files correctly. This file is edited and read in emacs with org mode.

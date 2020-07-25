@@ -2,11 +2,7 @@ window.addEventListener("load", onLoad);
 
 function onLoad() {
   value =
-`/* this is this
-    dependencies:
-      https://codemirror.net/
-      https://www.stopify.org/
-*/
+`/* this is this */
 
 //allows re-running
 if (main) {
