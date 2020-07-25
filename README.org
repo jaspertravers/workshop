@@ -76,6 +76,15 @@ backspace on empty editor throws "RangeError"
 ~view.state.doc.toString()~
 to get string in editor for stopify
 
+time for prosemirror
+
+#+BEGIN_SRC sh
+npm install prosemirror-keymap prosemirror-history prosemirror-commands prosemirror-dropcursor prosemirror-gapcursor prosemirror-menu prosemirror-inputrules prosemirror-schema-list prosemirror-schema-basic
+
+npm install prosemirror-example-setup
+#+END_SRC
+
+
 
 *** Links
 - https://git-scm.com/book/

@@ -1,7 +1,13 @@
 // stopify is included via <script> in /public
 // codemirror
-import {EditorState, EditorView, basicSetup} from './codemirror.js'
+import {EditorState, EditorView, basicSetup} from './codemirror/codemirror.js'
 // prosemirror
+import {EditorState as proseEditorState} from "prosemirror-state"
+import {EditorView as proseEditorView} from "prosemirror-view"
+import {Schema, DOMParser} from "prosemirror-model"
+import {schema} from "prosemirror-schema-basic"
+import {addListNodes} from "prosemirror-schema-list"
+import {exampleSetup} from "prosemirror-example-setup"
 // console
 
 // javascript
@@ -15,6 +21,11 @@ function onLoad() {
   let cmnode = document.createElement("div");
   cmnode.id = "cmnode";
   main.appendChild(cmnode);
+  let pmnode = document.createElement("div");
+  pmnode.id = "cmnode";
+  main.appendChild(pmnode);
+
+  document.body.style.fontSize = "1.2rem";
 
   /////////////////////////////////////////////////////////////////////////////
   // code mirror next //
@@ -32,6 +43,28 @@ console.log(x)
     }),
     parent: cmnode
   })
+
+  /////////////////////////////////////////////////////////////////////////////
+  // prosemirror //
+  /////////////////////////////////////////////////////////////////////////////
+
+
+  // Mix the nodes from prosemirror-schema-list into the basic schema to
+  // create a schema with list support.
+  const mySchema = new Schema({
+    nodes: addListNodes(schema.spec.nodes, "paragraph block*", "block"),
+    marks: schema.spec.marks
+  })
+
+  //window.view = new proseEditorView(document.querySelector("#editor"), {
+  let pview = new proseEditorView(document.querySelector("#editor"), {
+    state: proseEditorState.create({
+      doc: DOMParser.fromSchema(mySchema).parse(document.querySelector("#content")),
+      plugins: exampleSetup({schema: mySchema})
+    })
+  })
+
+
 
   /////////////////////////////////////////////////////////////////////////////
   // execution //
