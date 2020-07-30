@@ -1,3 +1,5 @@
+
+(function(l, r) { if (l.getElementById('livereloadscript')) return; r = l.createElement('script'); r.async = 1; r.src = '//' + (window.location.host || 'localhost').split(':')[0] + ':35729/livereload.js?snipver=1'; r.id = 'livereloadscript'; l.getElementsByTagName('head')[0].appendChild(r) })(window.document);
 (function () {
     'use strict';
 
@@ -16346,6 +16348,13 @@
       ]),
       javascript()
     ];
+    const startupDoc = 
+`// Hello CodeMirror next
+let x = 5;
+console.log(x)
+// ctrl-enter runs this editor
+// open console to see console.log
+`;
 
     // ::- Persistent data structure representing an ordered mapping from
     // strings to values, with some convenient update methods.
@@ -17480,7 +17489,7 @@
     //
     // **Do not** directly mutate the properties of a `Node` object. See
     // [the guide](/docs/guide/#doc) for more information.
-    var Node$1 = function Node(type, attrs, content, marks) {
+    var Node = function Node(type, attrs, content, marks) {
       // :: NodeType
       // The type of node that this is.
       this.type = type;
@@ -17521,16 +17530,16 @@
     // :: (number) → Node
     // Get the child node at the given index. Raises an error when the
     // index is out of range.
-    Node$1.prototype.child = function child (index) { return this.content.child(index) };
+    Node.prototype.child = function child (index) { return this.content.child(index) };
 
     // :: (number) → ?Node
     // Get the child node at the given index, if it exists.
-    Node$1.prototype.maybeChild = function maybeChild (index) { return this.content.maybeChild(index) };
+    Node.prototype.maybeChild = function maybeChild (index) { return this.content.maybeChild(index) };
 
     // :: ((node: Node, offset: number, index: number))
     // Call `f` for every child node, passing the node, its offset
     // into this parent node, and its index.
-    Node$1.prototype.forEach = function forEach (f) { this.content.forEach(f); };
+    Node.prototype.forEach = function forEach (f) { this.content.forEach(f); };
 
     // :: (number, number, (node: Node, pos: number, parent: Node, index: number) → ?bool, ?number)
     // Invoke a callback for all descendant nodes recursively between
@@ -17540,7 +17549,7 @@
     // When the callback returns false for a given node, that node's
     // children will not be recursed over. The last parameter can be
     // used to specify a starting position to count from.
-    Node$1.prototype.nodesBetween = function nodesBetween (from, to, f, startPos) {
+    Node.prototype.nodesBetween = function nodesBetween (from, to, f, startPos) {
         if ( startPos === void 0 ) startPos = 0;
 
       this.content.nodesBetween(from, to, f, startPos, this);
@@ -17549,7 +17558,7 @@
     // :: ((node: Node, pos: number, parent: Node) → ?bool)
     // Call the given callback for every descendant node. Doesn't
     // descend into a node when the callback returns `false`.
-    Node$1.prototype.descendants = function descendants (f) {
+    Node.prototype.descendants = function descendants (f) {
       this.nodesBetween(0, this.content.size, f);
     };
 
@@ -17563,7 +17572,7 @@
     // `blockSeparator` is given, it will be inserted whenever a new
     // block node is started. When `leafText` is given, it'll be
     // inserted for every non-text leaf node encountered.
-    Node$1.prototype.textBetween = function textBetween (from, to, blockSeparator, leafText) {
+    Node.prototype.textBetween = function textBetween (from, to, blockSeparator, leafText) {
       return this.content.textBetween(from, to, blockSeparator, leafText)
     };
 
@@ -17579,21 +17588,21 @@
 
     // :: (Node) → bool
     // Test whether two nodes represent the same piece of document.
-    Node$1.prototype.eq = function eq (other) {
+    Node.prototype.eq = function eq (other) {
       return this == other || (this.sameMarkup(other) && this.content.eq(other.content))
     };
 
     // :: (Node) → bool
     // Compare the markup (type, attributes, and marks) of this node to
     // those of another. Returns `true` if both have the same markup.
-    Node$1.prototype.sameMarkup = function sameMarkup (other) {
+    Node.prototype.sameMarkup = function sameMarkup (other) {
       return this.hasMarkup(other.type, other.attrs, other.marks)
     };
 
     // :: (NodeType, ?Object, ?[Mark]) → bool
     // Check whether this node's markup correspond to the given type,
     // attributes, and marks.
-    Node$1.prototype.hasMarkup = function hasMarkup (type, attrs, marks) {
+    Node.prototype.hasMarkup = function hasMarkup (type, attrs, marks) {
       return this.type == type &&
         compareDeep(this.attrs, attrs || type.defaultAttrs || emptyAttrs) &&
         Mark.sameSet(this.marks, marks || Mark.none)
@@ -17602,7 +17611,7 @@
     // :: (?Fragment) → Node
     // Create a new node with the same markup as this node, containing
     // the given content (or empty, if no content is given).
-    Node$1.prototype.copy = function copy (content) {
+    Node.prototype.copy = function copy (content) {
         if ( content === void 0 ) content = null;
 
       if (content == this.content) { return this }
@@ -17612,7 +17621,7 @@
     // :: ([Mark]) → Node
     // Create a copy of this node, with the given set of marks instead
     // of the node's own marks.
-    Node$1.prototype.mark = function mark (marks) {
+    Node.prototype.mark = function mark (marks) {
       return marks == this.marks ? this : new this.constructor(this.type, this.attrs, this.content, marks)
     };
 
@@ -17620,7 +17629,7 @@
     // Create a copy of this node with only the content between the
     // given positions. If `to` is not given, it defaults to the end of
     // the node.
-    Node$1.prototype.cut = function cut (from, to) {
+    Node.prototype.cut = function cut (from, to) {
       if (from == 0 && to == this.content.size) { return this }
       return this.copy(this.content.cut(from, to))
     };
@@ -17628,7 +17637,7 @@
     // :: (number, ?number) → Slice
     // Cut out the part of the document between the given positions, and
     // return it as a `Slice` object.
-    Node$1.prototype.slice = function slice (from, to, includeParents) {
+    Node.prototype.slice = function slice (from, to, includeParents) {
         if ( to === void 0 ) to = this.content.size;
         if ( includeParents === void 0 ) includeParents = false;
 
@@ -17648,13 +17657,13 @@
     // content nodes must be valid children for the node they are placed
     // into. If any of this is violated, an error of type
     // [`ReplaceError`](#model.ReplaceError) is thrown.
-    Node$1.prototype.replace = function replace$1 (from, to, slice) {
+    Node.prototype.replace = function replace$1 (from, to, slice) {
       return replace(this.resolve(from), this.resolve(to), slice)
     };
 
     // :: (number) → ?Node
     // Find the node directly after the given position.
-    Node$1.prototype.nodeAt = function nodeAt (pos) {
+    Node.prototype.nodeAt = function nodeAt (pos) {
       for (var node = this;;) {
         var ref = node.content.findIndex(pos);
           var index = ref.index;
@@ -17670,7 +17679,7 @@
     // Find the (direct) child node after the given offset, if any,
     // and return it along with its index and offset relative to this
     // node.
-    Node$1.prototype.childAfter = function childAfter (pos) {
+    Node.prototype.childAfter = function childAfter (pos) {
       var ref = this.content.findIndex(pos);
         var index = ref.index;
         var offset = ref.offset;
@@ -17681,7 +17690,7 @@
     // Find the (direct) child node before the given offset, if any,
     // and return it along with its index and offset relative to this
     // node.
-    Node$1.prototype.childBefore = function childBefore (pos) {
+    Node.prototype.childBefore = function childBefore (pos) {
       if (pos == 0) { return {node: null, index: 0, offset: 0} }
       var ref = this.content.findIndex(pos);
         var index = ref.index;
@@ -17694,14 +17703,14 @@
     // :: (number) → ResolvedPos
     // Resolve the given position in the document, returning an
     // [object](#model.ResolvedPos) with information about its context.
-    Node$1.prototype.resolve = function resolve (pos) { return ResolvedPos.resolveCached(this, pos) };
+    Node.prototype.resolve = function resolve (pos) { return ResolvedPos.resolveCached(this, pos) };
 
-    Node$1.prototype.resolveNoCache = function resolveNoCache (pos) { return ResolvedPos.resolve(this, pos) };
+    Node.prototype.resolveNoCache = function resolveNoCache (pos) { return ResolvedPos.resolve(this, pos) };
 
     // :: (number, number, union<Mark, MarkType>) → bool
     // Test whether a given mark or mark type occurs in this document
     // between the two given positions.
-    Node$1.prototype.rangeHasMark = function rangeHasMark (from, to, type) {
+    Node.prototype.rangeHasMark = function rangeHasMark (from, to, type) {
       var found = false;
       if (to > from) { this.nodesBetween(from, to, function (node) {
         if (type.isInSet(node.marks)) { found = true; }
@@ -17747,7 +17756,7 @@
     // :: () → string
     // Return a string representation of this node for debugging
     // purposes.
-    Node$1.prototype.toString = function toString () {
+    Node.prototype.toString = function toString () {
       if (this.type.spec.toDebugString) { return this.type.spec.toDebugString(this) }
       var name = this.type.name;
       if (this.content.size)
@@ -17757,7 +17766,7 @@
 
     // :: (number) → ContentMatch
     // Get the content match in this node at the given index.
-    Node$1.prototype.contentMatchAt = function contentMatchAt (index) {
+    Node.prototype.contentMatchAt = function contentMatchAt (index) {
       var match = this.type.contentMatch.matchFragment(this.content, 0, index);
       if (!match) { throw new Error("Called contentMatchAt on a node with invalid content") }
       return match
@@ -17769,7 +17778,7 @@
     // to the empty fragment) would leave the node's content valid. You
     // can optionally pass `start` and `end` indices into the
     // replacement fragment.
-    Node$1.prototype.canReplace = function canReplace (from, to, replacement, start, end) {
+    Node.prototype.canReplace = function canReplace (from, to, replacement, start, end) {
         if ( replacement === void 0 ) replacement = Fragment.empty;
         if ( start === void 0 ) start = 0;
         if ( end === void 0 ) end = replacement.childCount;
@@ -17784,7 +17793,7 @@
     // :: (number, number, NodeType, ?[Mark]) → bool
     // Test whether replacing the range `from` to `to` (by index) with a
     // node of the given type would leave the node's content valid.
-    Node$1.prototype.canReplaceWith = function canReplaceWith (from, to, type, marks) {
+    Node.prototype.canReplaceWith = function canReplaceWith (from, to, type, marks) {
       if (marks && !this.type.allowsMarks(marks)) { return false }
       var start = this.contentMatchAt(from).matchType(type);
       var end = start && start.matchFragment(this.content, to);
@@ -17796,7 +17805,7 @@
     // node. If that node is empty, this will only return true if there
     // is at least one node type that can appear in both nodes (to avoid
     // merging completely incompatible nodes).
-    Node$1.prototype.canAppend = function canAppend (other) {
+    Node.prototype.canAppend = function canAppend (other) {
       if (other.content.size) { return this.canReplace(this.childCount, this.childCount, other.content) }
       else { return this.type.compatibleContent(other.type) }
     };
@@ -17804,7 +17813,7 @@
     // :: ()
     // Check whether this node and its descendants conform to the
     // schema, and raise error when they do not.
-    Node$1.prototype.check = function check () {
+    Node.prototype.check = function check () {
       if (!this.type.validContent(this.content))
         { throw new RangeError(("Invalid content for node " + (this.type.name) + ": " + (this.content.toString().slice(0, 50)))) }
       this.content.forEach(function (node) { return node.check(); });
@@ -17812,7 +17821,7 @@
 
     // :: () → Object
     // Return a JSON-serializeable representation of this node.
-    Node$1.prototype.toJSON = function toJSON () {
+    Node.prototype.toJSON = function toJSON () {
       var obj = {type: this.type.name};
       for (var _ in this.attrs) {
         obj.attrs = this.attrs;
@@ -17827,7 +17836,7 @@
 
     // :: (Schema, Object) → Node
     // Deserialize a node from its JSON representation.
-    Node$1.fromJSON = function fromJSON (schema, json) {
+    Node.fromJSON = function fromJSON (schema, json) {
       if (!json) { throw new RangeError("Invalid input for Node.fromJSON") }
       var marks = null;
       if (json.marks) {
@@ -17842,7 +17851,7 @@
       return schema.nodeType(json.type).create(json.attrs, content, marks)
     };
 
-    Object.defineProperties( Node$1.prototype, prototypeAccessors$3 );
+    Object.defineProperties( Node.prototype, prototypeAccessors$3 );
 
     var TextNode$1 = /*@__PURE__*/(function (Node) {
       function TextNode(type, attrs, content, marks) {
@@ -17900,7 +17909,7 @@
       Object.defineProperties( TextNode.prototype, prototypeAccessors$1 );
 
       return TextNode;
-    }(Node$1));
+    }(Node));
 
     function wrapMarks(marks, str) {
       for (var i = marks.length - 1; i >= 0; i--)
@@ -18434,7 +18443,7 @@
     // set of marks.
     NodeType$1.prototype.create = function create (attrs, content, marks) {
       if (this.isText) { throw new Error("NodeType.create can't construct text nodes") }
-      return new Node$1(this, this.computeAttrs(attrs), Fragment.from(content), Mark.setFrom(marks))
+      return new Node(this, this.computeAttrs(attrs), Fragment.from(content), Mark.setFrom(marks))
     };
 
     // :: (?Object, ?union<Fragment, Node, [Node]>, ?[Mark]) → Node
@@ -18445,7 +18454,7 @@
       content = Fragment.from(content);
       if (!this.validContent(content))
         { throw new RangeError("Invalid content for node " + this.name) }
-      return new Node$1(this, this.computeAttrs(attrs), content, Mark.setFrom(marks))
+      return new Node(this, this.computeAttrs(attrs), content, Mark.setFrom(marks))
     };
 
     // :: (?Object, ?union<Fragment, Node, [Node]>, ?[Mark]) → ?Node
@@ -18465,7 +18474,7 @@
       }
       var after = this.contentMatch.matchFragment(content).fillBefore(Fragment.empty, true);
       if (!after) { return null }
-      return new Node$1(this, attrs, content.append(after), Mark.setFrom(marks))
+      return new Node(this, attrs, content.append(after), Mark.setFrom(marks))
     };
 
     // :: (Fragment) → bool
@@ -18856,7 +18865,7 @@
     // Deserialize a node from its JSON representation. This method is
     // bound.
     Schema.prototype.nodeFromJSON = function nodeFromJSON (json) {
-      return Node$1.fromJSON(this, json)
+      return Node.fromJSON(this, json)
     };
 
     // :: (Object) → Mark
@@ -22479,7 +22488,7 @@
       var instance = new EditorState$1($config);
       $config.fields.forEach(function (field) {
         if (field.name == "doc") {
-          instance.doc = Node$1.fromJSON(config.schema, json.doc);
+          instance.doc = Node.fromJSON(config.schema, json.doc);
         } else if (field.name == "selection") {
           instance.selection = Selection.fromJSON(instance.doc, json.selection);
         } else if (field.name == "storedMarks") {
@@ -27571,45 +27580,37 @@
       return nA != nB
     }
 
-    var pDOM = ["p", 0], blockquoteDOM = ["blockquote", 0], hrDOM = ["hr"],
+    // https://github.com/ProseMirror/prosemirror-schema-basic/blob/master/src/schema-basic.js
+
+    const pDOM = ["p", 0], blockquoteDOM = ["blockquote", 0], hrDOM = ["hr"],
           preDOM = ["pre", ["code", 0]], brDOM = ["br"];
 
-    // :: Object
-    // [Specs](#model.NodeSpec) for the nodes defined in this schema.
-    var nodes = {
-      // :: NodeSpec The top level document node.
+    const nodes = {
       doc: {
         content: "block+"
       },
 
-      // :: NodeSpec A plain paragraph textblock. Represented in the DOM
-      // as a `<p>` element.
       paragraph: {
         content: "inline*",
         group: "block",
         parseDOM: [{tag: "p"}],
-        toDOM: function toDOM() { return pDOM }
+        toDOM() { return pDOM }
       },
 
-      // :: NodeSpec A blockquote (`<blockquote>`) wrapping one or more blocks.
       blockquote: {
         content: "block+",
         group: "block",
         defining: true,
         parseDOM: [{tag: "blockquote"}],
-        toDOM: function toDOM() { return blockquoteDOM }
+        toDOM() { return blockquoteDOM }
       },
 
-      // :: NodeSpec A horizontal rule (`<hr>`).
       horizontal_rule: {
         group: "block",
         parseDOM: [{tag: "hr"}],
-        toDOM: function toDOM() { return hrDOM }
+        toDOM() { return hrDOM }
       },
 
-      // :: NodeSpec A heading textblock, with a `level` attribute that
-      // should hold the number 1 to 6. Parsed and serialized as `<h1>` to
-      // `<h6>` elements.
       heading: {
         attrs: {level: {default: 1}},
         content: "inline*",
@@ -27621,12 +27622,9 @@
                    {tag: "h4", attrs: {level: 4}},
                    {tag: "h5", attrs: {level: 5}},
                    {tag: "h6", attrs: {level: 6}}],
-        toDOM: function toDOM(node) { return ["h" + node.attrs.level, 0] }
+        toDOM(node) { return ["h" + node.attrs.level, 0] }
       },
 
-      // :: NodeSpec A code listing. Disallows marks or non-text inline
-      // nodes by default. Represented as a `<pre>` element with a
-      // `<code>` element inside of it.
       code_block: {
         content: "text*",
         marks: "",
@@ -27634,17 +27632,13 @@
         code: true,
         defining: true,
         parseDOM: [{tag: "pre", preserveWhitespace: "full"}],
-        toDOM: function toDOM() { return preDOM }
+        toDOM() { return preDOM }
       },
 
-      // :: NodeSpec The text node.
       text: {
         group: "inline"
       },
 
-      // :: NodeSpec An inline image (`<img>`) node. Supports `src`,
-      // `alt`, and `href` attributes. The latter two default to the empty
-      // string.
       image: {
         inline: true,
         attrs: {
@@ -27654,73 +27648,58 @@
         },
         group: "inline",
         draggable: true,
-        parseDOM: [{tag: "img[src]", getAttrs: function getAttrs(dom) {
+        parseDOM: [{tag: "img[src]", getAttrs(dom) {
           return {
             src: dom.getAttribute("src"),
             title: dom.getAttribute("title"),
             alt: dom.getAttribute("alt")
           }
         }}],
-        toDOM: function toDOM(node) { var ref = node.attrs;
-        var src = ref.src;
-        var alt = ref.alt;
-        var title = ref.title; return ["img", {src: src, alt: alt, title: title}] }
+        toDOM(node) { let {src, alt, title} = node.attrs; return ["img", {src, alt, title}] }
       },
 
-      // :: NodeSpec A hard line break, represented in the DOM as `<br>`.
       hard_break: {
         inline: true,
         group: "inline",
         selectable: false,
         parseDOM: [{tag: "br"}],
-        toDOM: function toDOM() { return brDOM }
+        toDOM() { return brDOM }
       }
     };
 
-    var emDOM = ["em", 0], strongDOM = ["strong", 0], codeDOM = ["code", 0];
+    const emDOM = ["em", 0], strongDOM = ["strong", 0], codeDOM = ["code", 0];
 
-    // :: Object [Specs](#model.MarkSpec) for the marks in the schema.
-    var marks = {
-      // :: MarkSpec A link. Has `href` and `title` attributes. `title`
-      // defaults to the empty string. Rendered and parsed as an `<a>`
-      // element.
+    const marks = {
       link: {
         attrs: {
           href: {},
           title: {default: null}
         },
         inclusive: false,
-        parseDOM: [{tag: "a[href]", getAttrs: function getAttrs(dom) {
+        parseDOM: [{tag: "a[href]", getAttrs(dom) {
           return {href: dom.getAttribute("href"), title: dom.getAttribute("title")}
         }}],
-        toDOM: function toDOM(node) { var ref = node.attrs;
-        var href = ref.href;
-        var title = ref.title; return ["a", {href: href, title: title}, 0] }
+        toDOM(node) { let {href, title} = node.attrs; return ["a", {href, title}, 0] }
       },
 
-      // :: MarkSpec An emphasis mark. Rendered as an `<em>` element.
-      // Has parse rules that also match `<i>` and `font-style: italic`.
       em: {
         parseDOM: [{tag: "i"}, {tag: "em"}, {style: "font-style=italic"}],
-        toDOM: function toDOM() { return emDOM }
+        toDOM() { return emDOM }
       },
 
-      // :: MarkSpec A strong mark. Rendered as `<strong>`, parse rules
-      // also match `<b>` and `font-weight: bold`.
       strong: {
         parseDOM: [{tag: "strong"},
                    // This works around a Google Docs misbehavior where
                    // pasted content will be inexplicably wrapped in `<b>`
                    // tags with a font-weight normal.
-                   {tag: "b", getAttrs: function (node) { return node.style.fontWeight != "normal" && null; }},
-                   {style: "font-weight", getAttrs: function (value) { return /^(bold(er)?|[5-9]\d{2,})$/.test(value) && null; }}],
-        toDOM: function toDOM() { return strongDOM }
+                   {tag: "b", getAttrs: node => node.style.fontWeight != "normal" && null},
+                   {style: "font-weight", getAttrs: value => /^(bold(er)?|[5-9]\d{2,})$/.test(value) && null}],
+        toDOM() { return strongDOM }
       },
 
-      // :: MarkSpec Code font mark. Represented as a `<code>` element.
       code: {
         parseDOM: [{tag: "code"}],
-        toDOM: function toDOM() { return codeDOM }
+        toDOM() { return codeDOM }
       }
     };
 
@@ -27732,244 +27711,46 @@
     //
     // To reuse elements from this schema, extend or read from its
     // `spec.nodes` and `spec.marks` [properties](#model.Schema.spec).
-    var schema = new Schema({nodes: nodes, marks: marks});
+    const schema = new Schema({nodes, marks});
 
-    var olDOM = ["ol", 0], ulDOM = ["ul", 0], liDOM = ["li", 0];
+    // https://github.com/ProseMirror/prosemirror-schema-list/blob/master/src/schema-list.js
 
-    // :: NodeSpec
-    // An ordered list [node spec](#model.NodeSpec). Has a single
-    // attribute, `order`, which determines the number at which the list
-    // starts counting, and defaults to 1. Represented as an `<ol>`
-    // element.
-    var orderedList = {
+    const olDOM = ["ol", 0], ulDOM = ["ul", 0], liDOM = ["li", 0];
+
+    const orderedList = {
       attrs: {order: {default: 1}},
-      parseDOM: [{tag: "ol", getAttrs: function getAttrs(dom) {
+      parseDOM: [{tag: "ol", getAttrs(dom) {
         return {order: dom.hasAttribute("start") ? +dom.getAttribute("start") : 1}
       }}],
-      toDOM: function toDOM(node) {
+      toDOM(node) {
         return node.attrs.order == 1 ? olDOM : ["ol", {start: node.attrs.order}, 0]
       }
     };
 
-    // :: NodeSpec
-    // A bullet list node spec, represented in the DOM as `<ul>`.
-    var bulletList = {
+    const bulletList = {
       parseDOM: [{tag: "ul"}],
-      toDOM: function toDOM() { return ulDOM }
+      toDOM() { return ulDOM }
     };
 
-    // :: NodeSpec
-    // A list item (`<li>`) spec.
-    var listItem = {
+    const listItem = {
       parseDOM: [{tag: "li"}],
-      toDOM: function toDOM() { return liDOM },
+      toDOM() { return liDOM },
       defining: true
     };
 
     function add(obj, props) {
-      var copy = {};
-      for (var prop in obj) { copy[prop] = obj[prop]; }
-      for (var prop$1 in props) { copy[prop$1] = props[prop$1]; }
+      let copy = {};
+      for (let prop in obj) copy[prop] = obj[prop];
+      for (let prop in props) copy[prop] = props[prop];
       return copy
     }
 
-    // :: (OrderedMap<NodeSpec>, string, ?string) → OrderedMap<NodeSpec>
-    // Convenience function for adding list-related node types to a map
-    // specifying the nodes for a schema. Adds
-    // [`orderedList`](#schema-list.orderedList) as `"ordered_list"`,
-    // [`bulletList`](#schema-list.bulletList) as `"bullet_list"`, and
-    // [`listItem`](#schema-list.listItem) as `"list_item"`.
-    //
-    // `itemContent` determines the content expression for the list items.
-    // If you want the commands defined in this module to apply to your
-    // list structure, it should have a shape like `"paragraph block*"` or
-    // `"paragraph (ordered_list | bullet_list)*"`. `listGroup` can be
-    // given to assign a group name to the list node types, for example
-    // `"block"`.
     function addListNodes(nodes, itemContent, listGroup) {
       return nodes.append({
         ordered_list: add(orderedList, {content: "list_item+", group: listGroup}),
         bullet_list: add(bulletList, {content: "list_item+", group: listGroup}),
         list_item: add(listItem, {content: itemContent})
       })
-    }
-
-    // :: (NodeType, ?Object) → (state: EditorState, dispatch: ?(tr: Transaction)) → bool
-    // Returns a command function that wraps the selection in a list with
-    // the given type an attributes. If `dispatch` is null, only return a
-    // value to indicate whether this is possible, but don't actually
-    // perform the change.
-    function wrapInList(listType, attrs) {
-      return function(state, dispatch) {
-        var ref = state.selection;
-        var $from = ref.$from;
-        var $to = ref.$to;
-        var range = $from.blockRange($to), doJoin = false, outerRange = range;
-        if (!range) { return false }
-        // This is at the top of an existing list item
-        if (range.depth >= 2 && $from.node(range.depth - 1).type.compatibleContent(listType) && range.startIndex == 0) {
-          // Don't do anything if this is the top of the list
-          if ($from.index(range.depth - 1) == 0) { return false }
-          var $insert = state.doc.resolve(range.start - 2);
-          outerRange = new NodeRange($insert, $insert, range.depth);
-          if (range.endIndex < range.parent.childCount)
-            { range = new NodeRange($from, state.doc.resolve($to.end(range.depth)), range.depth); }
-          doJoin = true;
-        }
-        var wrap = findWrapping(outerRange, listType, attrs, range);
-        if (!wrap) { return false }
-        if (dispatch) { dispatch(doWrapInList(state.tr, range, wrap, doJoin, listType).scrollIntoView()); }
-        return true
-      }
-    }
-
-    function doWrapInList(tr, range, wrappers, joinBefore, listType) {
-      var content = Fragment.empty;
-      for (var i = wrappers.length - 1; i >= 0; i--)
-        { content = Fragment.from(wrappers[i].type.create(wrappers[i].attrs, content)); }
-
-      tr.step(new ReplaceAroundStep(range.start - (joinBefore ? 2 : 0), range.end, range.start, range.end,
-                                    new Slice(content, 0, 0), wrappers.length, true));
-
-      var found = 0;
-      for (var i$1 = 0; i$1 < wrappers.length; i$1++) { if (wrappers[i$1].type == listType) { found = i$1 + 1; } }
-      var splitDepth = wrappers.length - found;
-
-      var splitPos = range.start + wrappers.length - (joinBefore ? 2 : 0), parent = range.parent;
-      for (var i$2 = range.startIndex, e = range.endIndex, first = true; i$2 < e; i$2++, first = false) {
-        if (!first && canSplit(tr.doc, splitPos, splitDepth)) {
-          tr.split(splitPos, splitDepth);
-          splitPos += 2 * splitDepth;
-        }
-        splitPos += parent.child(i$2).nodeSize;
-      }
-      return tr
-    }
-
-    // :: (NodeType) → (state: EditorState, dispatch: ?(tr: Transaction)) → bool
-    // Build a command that splits a non-empty textblock at the top level
-    // of a list item by also splitting that list item.
-    function splitListItem(itemType) {
-      return function(state, dispatch) {
-        var ref = state.selection;
-        var $from = ref.$from;
-        var $to = ref.$to;
-        var node = ref.node;
-        if ((node && node.isBlock) || $from.depth < 2 || !$from.sameParent($to)) { return false }
-        var grandParent = $from.node(-1);
-        if (grandParent.type != itemType) { return false }
-        if ($from.parent.content.size == 0) {
-          // In an empty block. If this is a nested list, the wrapping
-          // list item should be split. Otherwise, bail out and let next
-          // command handle lifting.
-          if ($from.depth == 2 || $from.node(-3).type != itemType ||
-              $from.index(-2) != $from.node(-2).childCount - 1) { return false }
-          if (dispatch) {
-            var wrap = Fragment.empty, keepItem = $from.index(-1) > 0;
-            // Build a fragment containing empty versions of the structure
-            // from the outer list item to the parent node of the cursor
-            for (var d = $from.depth - (keepItem ? 1 : 2); d >= $from.depth - 3; d--)
-              { wrap = Fragment.from($from.node(d).copy(wrap)); }
-            // Add a second list item with an empty default start node
-            wrap = wrap.append(Fragment.from(itemType.createAndFill()));
-            var tr$1 = state.tr.replace($from.before(keepItem ? null : -1), $from.after(-3), new Slice(wrap, keepItem ? 3 : 2, 2));
-            tr$1.setSelection(state.selection.constructor.near(tr$1.doc.resolve($from.pos + (keepItem ? 3 : 2))));
-            dispatch(tr$1.scrollIntoView());
-          }
-          return true
-        }
-        var nextType = $to.pos == $from.end() ? grandParent.contentMatchAt(0).defaultType : null;
-        var tr = state.tr.delete($from.pos, $to.pos);
-        var types = nextType && [null, {type: nextType}];
-        if (!canSplit(tr.doc, $from.pos, 2, types)) { return false }
-        if (dispatch) { dispatch(tr.split($from.pos, 2, types).scrollIntoView()); }
-        return true
-      }
-    }
-
-    // :: (NodeType) → (state: EditorState, dispatch: ?(tr: Transaction)) → bool
-    // Create a command to lift the list item around the selection up into
-    // a wrapping list.
-    function liftListItem(itemType) {
-      return function(state, dispatch) {
-        var ref = state.selection;
-        var $from = ref.$from;
-        var $to = ref.$to;
-        var range = $from.blockRange($to, function (node) { return node.childCount && node.firstChild.type == itemType; });
-        if (!range) { return false }
-        if (!dispatch) { return true }
-        if ($from.node(range.depth - 1).type == itemType) // Inside a parent list
-          { return liftToOuterList(state, dispatch, itemType, range) }
-        else // Outer list node
-          { return liftOutOfList(state, dispatch, range) }
-      }
-    }
-
-    function liftToOuterList(state, dispatch, itemType, range) {
-      var tr = state.tr, end = range.end, endOfList = range.$to.end(range.depth);
-      if (end < endOfList) {
-        // There are siblings after the lifted items, which must become
-        // children of the last item
-        tr.step(new ReplaceAroundStep(end - 1, endOfList, end, endOfList,
-                                      new Slice(Fragment.from(itemType.create(null, range.parent.copy())), 1, 0), 1, true));
-        range = new NodeRange(tr.doc.resolve(range.$from.pos), tr.doc.resolve(endOfList), range.depth);
-      }
-      dispatch(tr.lift(range, liftTarget(range)).scrollIntoView());
-      return true
-    }
-
-    function liftOutOfList(state, dispatch, range) {
-      var tr = state.tr, list = range.parent;
-      // Merge the list items into a single big item
-      for (var pos = range.end, i = range.endIndex - 1, e = range.startIndex; i > e; i--) {
-        pos -= list.child(i).nodeSize;
-        tr.delete(pos - 1, pos + 1);
-      }
-      var $start = tr.doc.resolve(range.start), item = $start.nodeAfter;
-      var atStart = range.startIndex == 0, atEnd = range.endIndex == list.childCount;
-      var parent = $start.node(-1), indexBefore = $start.index(-1);
-      if (!parent.canReplace(indexBefore + (atStart ? 0 : 1), indexBefore + 1,
-                             item.content.append(atEnd ? Fragment.empty : Fragment.from(list))))
-        { return false }
-      var start = $start.pos, end = start + item.nodeSize;
-      // Strip off the surrounding list. At the sides where we're not at
-      // the end of the list, the existing list is closed. At sides where
-      // this is the end, it is overwritten to its end.
-      tr.step(new ReplaceAroundStep(start - (atStart ? 1 : 0), end + (atEnd ? 1 : 0), start + 1, end - 1,
-                                    new Slice((atStart ? Fragment.empty : Fragment.from(list.copy(Fragment.empty)))
-                                              .append(atEnd ? Fragment.empty : Fragment.from(list.copy(Fragment.empty))),
-                                              atStart ? 0 : 1, atEnd ? 0 : 1), atStart ? 0 : 1));
-      dispatch(tr.scrollIntoView());
-      return true
-    }
-
-    // :: (NodeType) → (state: EditorState, dispatch: ?(tr: Transaction)) → bool
-    // Create a command to sink the list item around the selection down
-    // into an inner list.
-    function sinkListItem(itemType) {
-      return function(state, dispatch) {
-        var ref = state.selection;
-        var $from = ref.$from;
-        var $to = ref.$to;
-        var range = $from.blockRange($to, function (node) { return node.childCount && node.firstChild.type == itemType; });
-        if (!range) { return false }
-        var startIndex = range.startIndex;
-        if (startIndex == 0) { return false }
-        var parent = range.parent, nodeBefore = parent.child(startIndex - 1);
-        if (nodeBefore.type != itemType) { return false }
-
-        if (dispatch) {
-          var nestedBefore = nodeBefore.lastChild && nodeBefore.lastChild.type == parent.type;
-          var inner = Fragment.from(nestedBefore ? itemType.create() : null);
-          var slice = new Slice(Fragment.from(itemType.create(null, Fragment.from(parent.type.create(null, inner)))),
-                                nestedBefore ? 3 : 1, 0);
-          var before = range.start, after = range.end;
-          dispatch(state.tr.step(new ReplaceAroundStep(before - (nestedBefore ? 3 : 1), after,
-                                                       before, after, slice, 1, true))
-                   .scrollIntoView());
-        }
-        return true
-      }
     }
 
     // declare global: navigator
@@ -29606,663 +29387,182 @@
       return DecorationSet.create(state.doc, [Decoration$1.widget(state.selection.head, node, {key: "gapcursor"})])
     }
 
-    function crelt() {
-      var elt = arguments[0];
-      if (typeof elt == "string") elt = document.createElement(elt);
-      var i = 1, next = arguments[1];
-      if (next && typeof next == "object" && next.nodeType == null && !Array.isArray(next)) {
-        for (var name in next) if (Object.prototype.hasOwnProperty.call(next, name)) {
-          var value = next[name];
-          if (typeof value == "string") elt.setAttribute(name, value);
-          else if (value != null) elt[name] = value;
+    // :: (NodeType, ?Object) → (state: EditorState, dispatch: ?(tr: Transaction)) → bool
+    // Returns a command function that wraps the selection in a list with
+    // the given type an attributes. If `dispatch` is null, only return a
+    // value to indicate whether this is possible, but don't actually
+    // perform the change.
+    function wrapInList(listType, attrs) {
+      return function(state, dispatch) {
+        var ref = state.selection;
+        var $from = ref.$from;
+        var $to = ref.$to;
+        var range = $from.blockRange($to), doJoin = false, outerRange = range;
+        if (!range) { return false }
+        // This is at the top of an existing list item
+        if (range.depth >= 2 && $from.node(range.depth - 1).type.compatibleContent(listType) && range.startIndex == 0) {
+          // Don't do anything if this is the top of the list
+          if ($from.index(range.depth - 1) == 0) { return false }
+          var $insert = state.doc.resolve(range.start - 2);
+          outerRange = new NodeRange($insert, $insert, range.depth);
+          if (range.endIndex < range.parent.childCount)
+            { range = new NodeRange($from, state.doc.resolve($to.end(range.depth)), range.depth); }
+          doJoin = true;
         }
-        i++;
-      }
-      for (; i < arguments.length; i++) add$1(elt, arguments[i]);
-      return elt
-    }
-
-    function add$1(elt, child) {
-      if (typeof child == "string") {
-        elt.appendChild(document.createTextNode(child));
-      } else if (child == null) ; else if (child.nodeType != null) {
-        elt.appendChild(child);
-      } else if (Array.isArray(child)) {
-        for (var i = 0; i < child.length; i++) add$1(elt, child[i]);
-      } else {
-        throw new RangeError("Unsupported child node: " + child)
-      }
-    }
-
-    var SVG = "http://www.w3.org/2000/svg";
-    var XLINK = "http://www.w3.org/1999/xlink";
-
-    var prefix = "ProseMirror-icon";
-
-    function hashPath(path) {
-      var hash = 0;
-      for (var i = 0; i < path.length; i++)
-        { hash = (((hash << 5) - hash) + path.charCodeAt(i)) | 0; }
-      return hash
-    }
-
-    function getIcon(icon) {
-      var node = document.createElement("div");
-      node.className = prefix;
-      if (icon.path) {
-        var name = "pm-icon-" + hashPath(icon.path).toString(16);
-        if (!document.getElementById(name)) { buildSVG(name, icon); }
-        var svg = node.appendChild(document.createElementNS(SVG, "svg"));
-        svg.style.width = (icon.width / icon.height) + "em";
-        var use = svg.appendChild(document.createElementNS(SVG, "use"));
-        use.setAttributeNS(XLINK, "href", /([^#]*)/.exec(document.location)[1] + "#" + name);
-      } else if (icon.dom) {
-        node.appendChild(icon.dom.cloneNode(true));
-      } else {
-        node.appendChild(document.createElement("span")).textContent = icon.text || '';
-        if (icon.css) { node.firstChild.style.cssText = icon.css; }
-      }
-      return node
-    }
-
-    function buildSVG(name, data) {
-      var collection = document.getElementById(prefix + "-collection");
-      if (!collection) {
-        collection = document.createElementNS(SVG, "svg");
-        collection.id = prefix + "-collection";
-        collection.style.display = "none";
-        document.body.insertBefore(collection, document.body.firstChild);
-      }
-      var sym = document.createElementNS(SVG, "symbol");
-      sym.id = name;
-      sym.setAttribute("viewBox", "0 0 " + data.width + " " + data.height);
-      var path = sym.appendChild(document.createElementNS(SVG, "path"));
-      path.setAttribute("d", data.path);
-      collection.appendChild(sym);
-    }
-
-    var prefix$1 = "ProseMirror-menu";
-
-    // ::- An icon or label that, when clicked, executes a command.
-    var MenuItem = function MenuItem(spec) {
-      // :: MenuItemSpec
-      // The spec used to create the menu item.
-      this.spec = spec;
-    };
-
-    // :: (EditorView) → {dom: dom.Node, update: (EditorState) → bool}
-    // Renders the icon according to its [display
-    // spec](#menu.MenuItemSpec.display), and adds an event handler which
-    // executes the command when the representation is clicked.
-    MenuItem.prototype.render = function render (view) {
-      var spec = this.spec;
-      var dom = spec.render ? spec.render(view)
-          : spec.icon ? getIcon(spec.icon)
-          : spec.label ? crelt("div", null, translate(view, spec.label))
-          : null;
-      if (!dom) { throw new RangeError("MenuItem without icon or label property") }
-      if (spec.title) {
-        var title = (typeof spec.title === "function" ? spec.title(view.state) : spec.title);
-        dom.setAttribute("title", translate(view, title));
-      }
-      if (spec.class) { dom.classList.add(spec.class); }
-      if (spec.css) { dom.style.cssText += spec.css; }
-
-      dom.addEventListener("mousedown", function (e) {
-        e.preventDefault();
-        if (!dom.classList.contains(prefix$1 + "-disabled"))
-          { spec.run(view.state, view.dispatch, view, e); }
-      });
-
-      function update(state) {
-        if (spec.select) {
-          var selected = spec.select(state);
-          dom.style.display = selected ? "" : "none";
-          if (!selected) { return false }
-        }
-        var enabled = true;
-        if (spec.enable) {
-          enabled = spec.enable(state) || false;
-          setClass(dom, prefix$1 + "-disabled", !enabled);
-        }
-        if (spec.active) {
-          var active = enabled && spec.active(state) || false;
-          setClass(dom, prefix$1 + "-active", active);
-        }
+        var wrap = findWrapping(outerRange, listType, attrs, range);
+        if (!wrap) { return false }
+        if (dispatch) { dispatch(doWrapInList(state.tr, range, wrap, doJoin, listType).scrollIntoView()); }
         return true
       }
-
-      return {dom: dom, update: update}
-    };
-
-    function translate(view, text) {
-      return view._props.translate ? view._props.translate(text) : text
     }
 
-    // MenuItemSpec:: interface
-    // The configuration object passed to the `MenuItem` constructor.
-    //
-    //   run:: (EditorState, (Transaction), EditorView, dom.Event)
-    //   The function to execute when the menu item is activated.
-    //
-    //   select:: ?(EditorState) → bool
-    //   Optional function that is used to determine whether the item is
-    //   appropriate at the moment. Deselected items will be hidden.
-    //
-    //   enable:: ?(EditorState) → bool
-    //   Function that is used to determine if the item is enabled. If
-    //   given and returning false, the item will be given a disabled
-    //   styling.
-    //
-    //   active:: ?(EditorState) → bool
-    //   A predicate function to determine whether the item is 'active' (for
-    //   example, the item for toggling the strong mark might be active then
-    //   the cursor is in strong text).
-    //
-    //   render:: ?(EditorView) → dom.Node
-    //   A function that renders the item. You must provide either this,
-    //   [`icon`](#menu.MenuItemSpec.icon), or [`label`](#MenuItemSpec.label).
-    //
-    //   icon:: ?Object
-    //   Describes an icon to show for this item. The object may specify
-    //   an SVG icon, in which case its `path` property should be an [SVG
-    //   path
-    //   spec](https://developer.mozilla.org/en-US/docs/Web/SVG/Attribute/d),
-    //   and `width` and `height` should provide the viewbox in which that
-    //   path exists. Alternatively, it may have a `text` property
-    //   specifying a string of text that makes up the icon, with an
-    //   optional `css` property giving additional CSS styling for the
-    //   text. _Or_ it may contain `dom` property containing a DOM node.
-    //
-    //   label:: ?string
-    //   Makes the item show up as a text label. Mostly useful for items
-    //   wrapped in a [drop-down](#menu.Dropdown) or similar menu. The object
-    //   should have a `label` property providing the text to display.
-    //
-    //   title:: ?union<string, (EditorState) → string>
-    //   Defines DOM title (mouseover) text for the item.
-    //
-    //   class:: ?string
-    //   Optionally adds a CSS class to the item's DOM representation.
-    //
-    //   css:: ?string
-    //   Optionally adds a string of inline CSS to the item's DOM
-    //   representation.
+    function doWrapInList(tr, range, wrappers, joinBefore, listType) {
+      var content = Fragment.empty;
+      for (var i = wrappers.length - 1; i >= 0; i--)
+        { content = Fragment.from(wrappers[i].type.create(wrappers[i].attrs, content)); }
 
-    var lastMenuEvent = {time: 0, node: null};
-    function markMenuEvent(e) {
-      lastMenuEvent.time = Date.now();
-      lastMenuEvent.node = e.target;
-    }
-    function isMenuEvent(wrapper) {
-      return Date.now() - 100 < lastMenuEvent.time &&
-        lastMenuEvent.node && wrapper.contains(lastMenuEvent.node)
-    }
+      tr.step(new ReplaceAroundStep(range.start - (joinBefore ? 2 : 0), range.end, range.start, range.end,
+                                    new Slice(content, 0, 0), wrappers.length, true));
 
-    // ::- A drop-down menu, displayed as a label with a downwards-pointing
-    // triangle to the right of it.
-    var Dropdown = function Dropdown(content, options) {
-      this.options = options || {};
-      this.content = Array.isArray(content) ? content : [content];
-    };
+      var found = 0;
+      for (var i$1 = 0; i$1 < wrappers.length; i$1++) { if (wrappers[i$1].type == listType) { found = i$1 + 1; } }
+      var splitDepth = wrappers.length - found;
 
-    // :: (EditorView) → {dom: dom.Node, update: (EditorState)}
-    // Render the dropdown menu and sub-items.
-    Dropdown.prototype.render = function render (view) {
-        var this$1 = this;
-
-      var content = renderDropdownItems(this.content, view);
-
-      var label = crelt("div", {class: prefix$1 + "-dropdown " + (this.options.class || ""),
-                               style: this.options.css},
-                       translate(view, this.options.label));
-      if (this.options.title) { label.setAttribute("title", translate(view, this.options.title)); }
-      var wrap = crelt("div", {class: prefix$1 + "-dropdown-wrap"}, label);
-      var open = null, listeningOnClose = null;
-      var close = function () {
-        if (open && open.close()) {
-          open = null;
-          window.removeEventListener("mousedown", listeningOnClose);
+      var splitPos = range.start + wrappers.length - (joinBefore ? 2 : 0), parent = range.parent;
+      for (var i$2 = range.startIndex, e = range.endIndex, first = true; i$2 < e; i$2++, first = false) {
+        if (!first && canSplit(tr.doc, splitPos, splitDepth)) {
+          tr.split(splitPos, splitDepth);
+          splitPos += 2 * splitDepth;
         }
-      };
-      label.addEventListener("mousedown", function (e) {
-        e.preventDefault();
-        markMenuEvent(e);
-        if (open) {
-          close();
-        } else {
-          open = this$1.expand(wrap, content.dom);
-          window.addEventListener("mousedown", listeningOnClose = function () {
-            if (!isMenuEvent(wrap)) { close(); }
-          });
-        }
-      });
-
-      function update(state) {
-        var inner = content.update(state);
-        wrap.style.display = inner ? "" : "none";
-        return inner
+        splitPos += parent.child(i$2).nodeSize;
       }
-
-      return {dom: wrap, update: update}
-    };
-
-    Dropdown.prototype.expand = function expand (dom, items) {
-      var menuDOM = crelt("div", {class: prefix$1 + "-dropdown-menu " + (this.options.class || "")}, items);
-
-      var done = false;
-      function close() {
-        if (done) { return }
-        done = true;
-        dom.removeChild(menuDOM);
-        return true
-      }
-      dom.appendChild(menuDOM);
-      return {close: close, node: menuDOM}
-    };
-
-    function renderDropdownItems(items, view) {
-      var rendered = [], updates = [];
-      for (var i = 0; i < items.length; i++) {
-        var ref = items[i].render(view);
-        var dom = ref.dom;
-        var update = ref.update;
-        rendered.push(crelt("div", {class: prefix$1 + "-dropdown-item"}, dom));
-        updates.push(update);
-      }
-      return {dom: rendered, update: combineUpdates(updates, rendered)}
+      return tr
     }
 
-    function combineUpdates(updates, nodes) {
-      return function (state) {
-        var something = false;
-        for (var i = 0; i < updates.length; i++) {
-          var up = updates[i](state);
-          nodes[i].style.display = up ? "" : "none";
-          if (up) { something = true; }
-        }
-        return something
-      }
-    }
-
-    // ::- Represents a submenu wrapping a group of elements that start
-    // hidden and expand to the right when hovered over or tapped.
-    var DropdownSubmenu = function DropdownSubmenu(content, options) {
-      this.options = options || {};
-      this.content = Array.isArray(content) ? content : [content];
-    };
-
-    // :: (EditorView) → {dom: dom.Node, update: (EditorState) → bool}
-    // Renders the submenu.
-    DropdownSubmenu.prototype.render = function render (view) {
-      var items = renderDropdownItems(this.content, view);
-
-      var label = crelt("div", {class: prefix$1 + "-submenu-label"}, translate(view, this.options.label));
-      var wrap = crelt("div", {class: prefix$1 + "-submenu-wrap"}, label,
-                     crelt("div", {class: prefix$1 + "-submenu"}, items.dom));
-      var listeningOnClose = null;
-      label.addEventListener("mousedown", function (e) {
-        e.preventDefault();
-        markMenuEvent(e);
-        setClass(wrap, prefix$1 + "-submenu-wrap-active");
-        if (!listeningOnClose)
-          { window.addEventListener("mousedown", listeningOnClose = function () {
-            if (!isMenuEvent(wrap)) {
-              wrap.classList.remove(prefix$1 + "-submenu-wrap-active");
-              window.removeEventListener("mousedown", listeningOnClose);
-              listeningOnClose = null;
-            }
-          }); }
-      });
-
-      function update(state) {
-        var inner = items.update(state);
-        wrap.style.display = inner ? "" : "none";
-        return inner
-      }
-      return {dom: wrap, update: update}
-    };
-
-    // :: (EditorView, [union<MenuElement, [MenuElement]>]) → {dom: ?dom.DocumentFragment, update: (EditorState) → bool}
-    // Render the given, possibly nested, array of menu elements into a
-    // document fragment, placing separators between them (and ensuring no
-    // superfluous separators appear when some of the groups turn out to
-    // be empty).
-    function renderGrouped(view, content) {
-      var result = document.createDocumentFragment();
-      var updates = [], separators = [];
-      for (var i = 0; i < content.length; i++) {
-        var items = content[i], localUpdates = [], localNodes = [];
-        for (var j = 0; j < items.length; j++) {
-          var ref = items[j].render(view);
-          var dom = ref.dom;
-          var update$1 = ref.update;
-          var span = crelt("span", {class: prefix$1 + "item"}, dom);
-          result.appendChild(span);
-          localNodes.push(span);
-          localUpdates.push(update$1);
-        }
-        if (localUpdates.length) {
-          updates.push(combineUpdates(localUpdates, localNodes));
-          if (i < content.length - 1)
-            { separators.push(result.appendChild(separator())); }
-        }
-      }
-
-      function update(state) {
-        var something = false, needSep = false;
-        for (var i = 0; i < updates.length; i++) {
-          var hasContent = updates[i](state);
-          if (i) { separators[i - 1].style.display = needSep && hasContent ? "" : "none"; }
-          needSep = hasContent;
-          if (hasContent) { something = true; }
-        }
-        return something
-      }
-      return {dom: result, update: update}
-    }
-
-    function separator() {
-      return crelt("span", {class: prefix$1 + "separator"})
-    }
-
-    // :: Object
-    // A set of basic editor-related icons. Contains the properties
-    // `join`, `lift`, `selectParentNode`, `undo`, `redo`, `strong`, `em`,
-    // `code`, `link`, `bulletList`, `orderedList`, and `blockquote`, each
-    // holding an object that can be used as the `icon` option to
-    // `MenuItem`.
-    var icons = {
-      join: {
-        width: 800, height: 900,
-        path: "M0 75h800v125h-800z M0 825h800v-125h-800z M250 400h100v-100h100v100h100v100h-100v100h-100v-100h-100z"
-      },
-      lift: {
-        width: 1024, height: 1024,
-        path: "M219 310v329q0 7-5 12t-12 5q-8 0-13-5l-164-164q-5-5-5-13t5-13l164-164q5-5 13-5 7 0 12 5t5 12zM1024 749v109q0 7-5 12t-12 5h-987q-7 0-12-5t-5-12v-109q0-7 5-12t12-5h987q7 0 12 5t5 12zM1024 530v109q0 7-5 12t-12 5h-621q-7 0-12-5t-5-12v-109q0-7 5-12t12-5h621q7 0 12 5t5 12zM1024 310v109q0 7-5 12t-12 5h-621q-7 0-12-5t-5-12v-109q0-7 5-12t12-5h621q7 0 12 5t5 12zM1024 91v109q0 7-5 12t-12 5h-987q-7 0-12-5t-5-12v-109q0-7 5-12t12-5h987q7 0 12 5t5 12z"
-      },
-      selectParentNode: {text: "\u2b1a", css: "font-weight: bold"},
-      undo: {
-        width: 1024, height: 1024,
-        path: "M761 1024c113-206 132-520-313-509v253l-384-384 384-384v248c534-13 594 472 313 775z"
-      },
-      redo: {
-        width: 1024, height: 1024,
-        path: "M576 248v-248l384 384-384 384v-253c-446-10-427 303-313 509-280-303-221-789 313-775z"
-      },
-      strong: {
-        width: 805, height: 1024,
-        path: "M317 869q42 18 80 18 214 0 214-191 0-65-23-102-15-25-35-42t-38-26-46-14-48-6-54-1q-41 0-57 5 0 30-0 90t-0 90q0 4-0 38t-0 55 2 47 6 38zM309 442q24 4 62 4 46 0 81-7t62-25 42-51 14-81q0-40-16-70t-45-46-61-24-70-8q-28 0-74 7 0 28 2 86t2 86q0 15-0 45t-0 45q0 26 0 39zM0 950l1-53q8-2 48-9t60-15q4-6 7-15t4-19 3-18 1-21 0-19v-37q0-561-12-585-2-4-12-8t-25-6-28-4-27-2-17-1l-2-47q56-1 194-6t213-5q13 0 39 0t38 0q40 0 78 7t73 24 61 40 42 59 16 78q0 29-9 54t-22 41-36 32-41 25-48 22q88 20 146 76t58 141q0 57-20 102t-53 74-78 48-93 27-100 8q-25 0-75-1t-75-1q-60 0-175 6t-132 6z"
-      },
-      em: {
-        width: 585, height: 1024,
-        path: "M0 949l9-48q3-1 46-12t63-21q16-20 23-57 0-4 35-165t65-310 29-169v-14q-13-7-31-10t-39-4-33-3l10-58q18 1 68 3t85 4 68 1q27 0 56-1t69-4 56-3q-2 22-10 50-17 5-58 16t-62 19q-4 10-8 24t-5 22-4 26-3 24q-15 84-50 239t-44 203q-1 5-7 33t-11 51-9 47-3 32l0 10q9 2 105 17-1 25-9 56-6 0-18 0t-18 0q-16 0-49-5t-49-5q-78-1-117-1-29 0-81 5t-69 6z"
-      },
-      code: {
-        width: 896, height: 1024,
-        path: "M608 192l-96 96 224 224-224 224 96 96 288-320-288-320zM288 192l-288 320 288 320 96-96-224-224 224-224-96-96z"
-      },
-      link: {
-        width: 951, height: 1024,
-        path: "M832 694q0-22-16-38l-118-118q-16-16-38-16-24 0-41 18 1 1 10 10t12 12 8 10 7 14 2 15q0 22-16 38t-38 16q-8 0-15-2t-14-7-10-8-12-12-10-10q-18 17-18 41 0 22 16 38l117 118q15 15 38 15 22 0 38-14l84-83q16-16 16-38zM430 292q0-22-16-38l-117-118q-16-16-38-16-22 0-38 15l-84 83q-16 16-16 38 0 22 16 38l118 118q15 15 38 15 24 0 41-17-1-1-10-10t-12-12-8-10-7-14-2-15q0-22 16-38t38-16q8 0 15 2t14 7 10 8 12 12 10 10q18-17 18-41zM941 694q0 68-48 116l-84 83q-47 47-116 47-69 0-116-48l-117-118q-47-47-47-116 0-70 50-119l-50-50q-49 50-118 50-68 0-116-48l-118-118q-48-48-48-116t48-116l84-83q47-47 116-47 69 0 116 48l117 118q47 47 47 116 0 70-50 119l50 50q49-50 118-50 68 0 116 48l118 118q48 48 48 116z"
-      },
-      bulletList: {
-        width: 768, height: 896,
-        path: "M0 512h128v-128h-128v128zM0 256h128v-128h-128v128zM0 768h128v-128h-128v128zM256 512h512v-128h-512v128zM256 256h512v-128h-512v128zM256 768h512v-128h-512v128z"
-      },
-      orderedList: {
-        width: 768, height: 896,
-        path: "M320 512h448v-128h-448v128zM320 768h448v-128h-448v128zM320 128v128h448v-128h-448zM79 384h78v-256h-36l-85 23v50l43-2v185zM189 590c0-36-12-78-96-78-33 0-64 6-83 16l1 66c21-10 42-15 67-15s32 11 32 28c0 26-30 58-110 112v50h192v-67l-91 2c49-30 87-66 87-113l1-1z"
-      },
-      blockquote: {
-        width: 640, height: 896,
-        path: "M0 448v256h256v-256h-128c0 0 0-128 128-128v-128c0 0-256 0-256 256zM640 320v-128c0 0-256 0-256 256v256h256v-256h-128c0 0 0-128 128-128z"
-      }
-    };
-
-    // :: MenuItem
-    // Menu item for the `joinUp` command.
-    var joinUpItem = new MenuItem({
-      title: "Join with above block",
-      run: joinUp,
-      select: function (state) { return joinUp(state); },
-      icon: icons.join
-    });
-
-    // :: MenuItem
-    // Menu item for the `lift` command.
-    var liftItem = new MenuItem({
-      title: "Lift out of enclosing block",
-      run: lift,
-      select: function (state) { return lift(state); },
-      icon: icons.lift
-    });
-
-    // :: MenuItem
-    // Menu item for the `selectParentNode` command.
-    var selectParentNodeItem = new MenuItem({
-      title: "Select parent node",
-      run: selectParentNode,
-      select: function (state) { return selectParentNode(state); },
-      icon: icons.selectParentNode
-    });
-
-    // :: MenuItem
-    // Menu item for the `undo` command.
-    var undoItem = new MenuItem({
-      title: "Undo last change",
-      run: undo$1,
-      enable: function (state) { return undo$1(state); },
-      icon: icons.undo
-    });
-
-    // :: MenuItem
-    // Menu item for the `redo` command.
-    var redoItem = new MenuItem({
-      title: "Redo last undone change",
-      run: redo$1,
-      enable: function (state) { return redo$1(state); },
-      icon: icons.redo
-    });
-
-    // :: (NodeType, Object) → MenuItem
-    // Build a menu item for wrapping the selection in a given node type.
-    // Adds `run` and `select` properties to the ones present in
-    // `options`. `options.attrs` may be an object or a function.
-    function wrapItem(nodeType, options) {
-      var passedOptions = {
-        run: function run(state, dispatch) {
-          // FIXME if (options.attrs instanceof Function) options.attrs(state, attrs => wrapIn(nodeType, attrs)(state))
-          return wrapIn(nodeType, options.attrs)(state, dispatch)
-        },
-        select: function select(state) {
-          return wrapIn(nodeType, options.attrs instanceof Function ? null : options.attrs)(state)
-        }
-      };
-      for (var prop in options) { passedOptions[prop] = options[prop]; }
-      return new MenuItem(passedOptions)
-    }
-
-    // :: (NodeType, Object) → MenuItem
-    // Build a menu item for changing the type of the textblock around the
-    // selection to the given type. Provides `run`, `active`, and `select`
-    // properties. Others must be given in `options`. `options.attrs` may
-    // be an object to provide the attributes for the textblock node.
-    function blockTypeItem(nodeType, options) {
-      var command = setBlockType(nodeType, options.attrs);
-      var passedOptions = {
-        run: command,
-        enable: function enable(state) { return command(state) },
-        active: function active(state) {
-          var ref = state.selection;
-          var $from = ref.$from;
-          var to = ref.to;
-          var node = ref.node;
-          if (node) { return node.hasMarkup(nodeType, options.attrs) }
-          return to <= $from.end() && $from.parent.hasMarkup(nodeType, options.attrs)
-        }
-      };
-      for (var prop in options) { passedOptions[prop] = options[prop]; }
-      return new MenuItem(passedOptions)
-    }
-
-    // Work around classList.toggle being broken in IE11
-    function setClass(dom, cls, on) {
-      if (on) { dom.classList.add(cls); }
-      else { dom.classList.remove(cls); }
-    }
-
-    var prefix$2 = "ProseMirror-menubar";
-
-    function isIOS() {
-      if (typeof navigator == "undefined") { return false }
-      var agent = navigator.userAgent;
-      return !/Edge\/\d/.test(agent) && /AppleWebKit/.test(agent) && /Mobile\/\w+/.test(agent)
-    }
-
-    // :: (Object) → Plugin
-    // A plugin that will place a menu bar above the editor. Note that
-    // this involves wrapping the editor in an additional `<div>`.
-    //
-    //   options::-
-    //   Supports the following options:
-    //
-    //     content:: [[MenuElement]]
-    //     Provides the content of the menu, as a nested array to be
-    //     passed to `renderGrouped`.
-    //
-    //     floating:: ?bool
-    //     Determines whether the menu floats, i.e. whether it sticks to
-    //     the top of the viewport when the editor is partially scrolled
-    //     out of view.
-    function menuBar(options) {
-      return new Plugin({
-        view: function view(editorView) { return new MenuBarView(editorView, options) }
-      })
-    }
-
-    var MenuBarView = function MenuBarView(editorView, options) {
-      var this$1 = this;
-
-      this.editorView = editorView;
-      this.options = options;
-
-      this.wrapper = crelt("div", {class: prefix$2 + "-wrapper"});
-      this.menu = this.wrapper.appendChild(crelt("div", {class: prefix$2}));
-      this.menu.className = prefix$2;
-      this.spacer = null;
-
-      editorView.dom.parentNode.replaceChild(this.wrapper, editorView.dom);
-      this.wrapper.appendChild(editorView.dom);
-
-      this.maxHeight = 0;
-      this.widthForMaxHeight = 0;
-      this.floating = false;
-
-      var ref = renderGrouped(this.editorView, this.options.content);
-      var dom = ref.dom;
-      var update = ref.update;
-      this.contentUpdate = update;
-      this.menu.appendChild(dom);
-      this.update();
-
-      if (options.floating && !isIOS()) {
-        this.updateFloat();
-        var potentialScrollers = getAllWrapping(this.wrapper);
-        this.scrollFunc = function (e) {
-          var root = this$1.editorView.root;
-          if (!(root.body || root).contains(this$1.wrapper)) {
-              potentialScrollers.forEach(function (el) { return el.removeEventListener("scroll", this$1.scrollFunc); });
-          } else {
-              this$1.updateFloat(e.target.getBoundingClientRect && e.target);
+    // :: (NodeType) → (state: EditorState, dispatch: ?(tr: Transaction)) → bool
+    // Build a command that splits a non-empty textblock at the top level
+    // of a list item by also splitting that list item.
+    function splitListItem(itemType) {
+      return function(state, dispatch) {
+        var ref = state.selection;
+        var $from = ref.$from;
+        var $to = ref.$to;
+        var node = ref.node;
+        if ((node && node.isBlock) || $from.depth < 2 || !$from.sameParent($to)) { return false }
+        var grandParent = $from.node(-1);
+        if (grandParent.type != itemType) { return false }
+        if ($from.parent.content.size == 0) {
+          // In an empty block. If this is a nested list, the wrapping
+          // list item should be split. Otherwise, bail out and let next
+          // command handle lifting.
+          if ($from.depth == 2 || $from.node(-3).type != itemType ||
+              $from.index(-2) != $from.node(-2).childCount - 1) { return false }
+          if (dispatch) {
+            var wrap = Fragment.empty, keepItem = $from.index(-1) > 0;
+            // Build a fragment containing empty versions of the structure
+            // from the outer list item to the parent node of the cursor
+            for (var d = $from.depth - (keepItem ? 1 : 2); d >= $from.depth - 3; d--)
+              { wrap = Fragment.from($from.node(d).copy(wrap)); }
+            // Add a second list item with an empty default start node
+            wrap = wrap.append(Fragment.from(itemType.createAndFill()));
+            var tr$1 = state.tr.replace($from.before(keepItem ? null : -1), $from.after(-3), new Slice(wrap, keepItem ? 3 : 2, 2));
+            tr$1.setSelection(state.selection.constructor.near(tr$1.doc.resolve($from.pos + (keepItem ? 3 : 2))));
+            dispatch(tr$1.scrollIntoView());
           }
-        };
-        potentialScrollers.forEach(function (el) { return el.addEventListener('scroll', this$1.scrollFunc); });
-      }
-    };
-
-    MenuBarView.prototype.update = function update () {
-      this.contentUpdate(this.editorView.state);
-
-      if (this.floating) {
-        this.updateScrollCursor();
-      } else {
-        if (this.menu.offsetWidth != this.widthForMaxHeight) {
-          this.widthForMaxHeight = this.menu.offsetWidth;
-          this.maxHeight = 0;
+          return true
         }
-        if (this.menu.offsetHeight > this.maxHeight) {
-          this.maxHeight = this.menu.offsetHeight;
-          this.menu.style.minHeight = this.maxHeight + "px";
-        }
+        var nextType = $to.pos == $from.end() ? grandParent.contentMatchAt(0).defaultType : null;
+        var tr = state.tr.delete($from.pos, $to.pos);
+        var types = nextType && [null, {type: nextType}];
+        if (!canSplit(tr.doc, $from.pos, 2, types)) { return false }
+        if (dispatch) { dispatch(tr.split($from.pos, 2, types).scrollIntoView()); }
+        return true
       }
-    };
-
-    MenuBarView.prototype.updateScrollCursor = function updateScrollCursor () {
-      var selection = this.editorView.root.getSelection();
-      if (!selection.focusNode) { return }
-      var rects = selection.getRangeAt(0).getClientRects();
-      var selRect = rects[selectionIsInverted(selection) ? 0 : rects.length - 1];
-      if (!selRect) { return }
-      var menuRect = this.menu.getBoundingClientRect();
-      if (selRect.top < menuRect.bottom && selRect.bottom > menuRect.top) {
-        var scrollable = findWrappingScrollable(this.wrapper);
-        if (scrollable) { scrollable.scrollTop -= (menuRect.bottom - selRect.top); }
-      }
-    };
-
-    MenuBarView.prototype.updateFloat = function updateFloat (scrollAncestor) {
-      var parent = this.wrapper, editorRect = parent.getBoundingClientRect(),
-          top = scrollAncestor ? Math.max(0, scrollAncestor.getBoundingClientRect().top) : 0;
-
-      if (this.floating) {
-        if (editorRect.top >= top || editorRect.bottom < this.menu.offsetHeight + 10) {
-          this.floating = false;
-          this.menu.style.position = this.menu.style.left = this.menu.style.top = this.menu.style.width = "";
-          this.menu.style.display = "";
-          this.spacer.parentNode.removeChild(this.spacer);
-          this.spacer = null;
-        } else {
-          var border = (parent.offsetWidth - parent.clientWidth) / 2;
-          this.menu.style.left = (editorRect.left + border) + "px";
-          this.menu.style.display = (editorRect.top > window.innerHeight ? "none" : "");
-          if (scrollAncestor) { this.menu.style.top = top + "px"; }
-        }
-      } else {
-        if (editorRect.top < top && editorRect.bottom >= this.menu.offsetHeight + 10) {
-          this.floating = true;
-          var menuRect = this.menu.getBoundingClientRect();
-          this.menu.style.left = menuRect.left + "px";
-          this.menu.style.width = menuRect.width + "px";
-          if (scrollAncestor) { this.menu.style.top = top + "px"; }
-          this.menu.style.position = "fixed";
-          this.spacer = crelt("div", {class: prefix$2 + "-spacer", style: ("height: " + (menuRect.height) + "px")});
-          parent.insertBefore(this.spacer, this.menu);
-        }
-      }
-    };
-
-    MenuBarView.prototype.destroy = function destroy () {
-      if (this.wrapper.parentNode)
-        { this.wrapper.parentNode.replaceChild(this.editorView.dom, this.wrapper); }
-    };
-
-    // Not precise, but close enough
-    function selectionIsInverted(selection) {
-      if (selection.anchorNode == selection.focusNode) { return selection.anchorOffset > selection.focusOffset }
-      return selection.anchorNode.compareDocumentPosition(selection.focusNode) == Node.DOCUMENT_POSITION_FOLLOWING
     }
 
-    function findWrappingScrollable(node) {
-      for (var cur = node.parentNode; cur; cur = cur.parentNode)
-        { if (cur.scrollHeight > cur.clientHeight) { return cur } }
+    // :: (NodeType) → (state: EditorState, dispatch: ?(tr: Transaction)) → bool
+    // Create a command to lift the list item around the selection up into
+    // a wrapping list.
+    function liftListItem(itemType) {
+      return function(state, dispatch) {
+        var ref = state.selection;
+        var $from = ref.$from;
+        var $to = ref.$to;
+        var range = $from.blockRange($to, function (node) { return node.childCount && node.firstChild.type == itemType; });
+        if (!range) { return false }
+        if (!dispatch) { return true }
+        if ($from.node(range.depth - 1).type == itemType) // Inside a parent list
+          { return liftToOuterList(state, dispatch, itemType, range) }
+        else // Outer list node
+          { return liftOutOfList(state, dispatch, range) }
+      }
     }
 
-    function getAllWrapping(node) {
-        var res = [window];
-        for (var cur = node.parentNode; cur; cur = cur.parentNode)
-            { res.push(cur); }
-        return res
+    function liftToOuterList(state, dispatch, itemType, range) {
+      var tr = state.tr, end = range.end, endOfList = range.$to.end(range.depth);
+      if (end < endOfList) {
+        // There are siblings after the lifted items, which must become
+        // children of the last item
+        tr.step(new ReplaceAroundStep(end - 1, endOfList, end, endOfList,
+                                      new Slice(Fragment.from(itemType.create(null, range.parent.copy())), 1, 0), 1, true));
+        range = new NodeRange(tr.doc.resolve(range.$from.pos), tr.doc.resolve(endOfList), range.depth);
+      }
+      dispatch(tr.lift(range, liftTarget(range)).scrollIntoView());
+      return true
+    }
+
+    function liftOutOfList(state, dispatch, range) {
+      var tr = state.tr, list = range.parent;
+      // Merge the list items into a single big item
+      for (var pos = range.end, i = range.endIndex - 1, e = range.startIndex; i > e; i--) {
+        pos -= list.child(i).nodeSize;
+        tr.delete(pos - 1, pos + 1);
+      }
+      var $start = tr.doc.resolve(range.start), item = $start.nodeAfter;
+      var atStart = range.startIndex == 0, atEnd = range.endIndex == list.childCount;
+      var parent = $start.node(-1), indexBefore = $start.index(-1);
+      if (!parent.canReplace(indexBefore + (atStart ? 0 : 1), indexBefore + 1,
+                             item.content.append(atEnd ? Fragment.empty : Fragment.from(list))))
+        { return false }
+      var start = $start.pos, end = start + item.nodeSize;
+      // Strip off the surrounding list. At the sides where we're not at
+      // the end of the list, the existing list is closed. At sides where
+      // this is the end, it is overwritten to its end.
+      tr.step(new ReplaceAroundStep(start - (atStart ? 1 : 0), end + (atEnd ? 1 : 0), start + 1, end - 1,
+                                    new Slice((atStart ? Fragment.empty : Fragment.from(list.copy(Fragment.empty)))
+                                              .append(atEnd ? Fragment.empty : Fragment.from(list.copy(Fragment.empty))),
+                                              atStart ? 0 : 1, atEnd ? 0 : 1), atStart ? 0 : 1));
+      dispatch(tr.scrollIntoView());
+      return true
+    }
+
+    // :: (NodeType) → (state: EditorState, dispatch: ?(tr: Transaction)) → bool
+    // Create a command to sink the list item around the selection down
+    // into an inner list.
+    function sinkListItem(itemType) {
+      return function(state, dispatch) {
+        var ref = state.selection;
+        var $from = ref.$from;
+        var $to = ref.$to;
+        var range = $from.blockRange($to, function (node) { return node.childCount && node.firstChild.type == itemType; });
+        if (!range) { return false }
+        var startIndex = range.startIndex;
+        if (startIndex == 0) { return false }
+        var parent = range.parent, nodeBefore = parent.child(startIndex - 1);
+        if (nodeBefore.type != itemType) { return false }
+
+        if (dispatch) {
+          var nestedBefore = nodeBefore.lastChild && nodeBefore.lastChild.type == parent.type;
+          var inner = Fragment.from(nestedBefore ? itemType.create() : null);
+          var slice = new Slice(Fragment.from(itemType.create(null, Fragment.from(parent.type.create(null, inner)))),
+                                nestedBefore ? 3 : 1, 0);
+          var before = range.start, after = range.end;
+          dispatch(state.tr.step(new ReplaceAroundStep(before - (nestedBefore ? 3 : 1), after,
+                                                       before, after, slice, 1, true))
+                   .scrollIntoView());
+        }
+        return true
+      }
     }
 
     // ::- Input rules are regular expressions describing a piece of text
@@ -30432,417 +29732,17 @@
       })
     }
 
-    var prefix$3 = "ProseMirror-prompt";
+    // https://github.com/ProseMirror/prosemirror-example-setup/blob/master/src/keymap.js
 
-    function openPrompt(options) {
-      var wrapper = document.body.appendChild(document.createElement("div"));
-      wrapper.className = prefix$3;
+    const mac$3 = typeof navigator != "undefined" ? /Mac/.test(navigator.platform) : false;
 
-      var mouseOutside = function (e) { if (!wrapper.contains(e.target)) { close(); } };
-      setTimeout(function () { return window.addEventListener("mousedown", mouseOutside); }, 50);
-      var close = function () {
-        window.removeEventListener("mousedown", mouseOutside);
-        if (wrapper.parentNode) { wrapper.parentNode.removeChild(wrapper); }
-      };
-
-      var domFields = [];
-      for (var name in options.fields) { domFields.push(options.fields[name].render()); }
-
-      var submitButton = document.createElement("button");
-      submitButton.type = "submit";
-      submitButton.className = prefix$3 + "-submit";
-      submitButton.textContent = "OK";
-      var cancelButton = document.createElement("button");
-      cancelButton.type = "button";
-      cancelButton.className = prefix$3 + "-cancel";
-      cancelButton.textContent = "Cancel";
-      cancelButton.addEventListener("click", close);
-
-      var form = wrapper.appendChild(document.createElement("form"));
-      if (options.title) { form.appendChild(document.createElement("h5")).textContent = options.title; }
-      domFields.forEach(function (field) {
-        form.appendChild(document.createElement("div")).appendChild(field);
-      });
-      var buttons = form.appendChild(document.createElement("div"));
-      buttons.className = prefix$3 + "-buttons";
-      buttons.appendChild(submitButton);
-      buttons.appendChild(document.createTextNode(" "));
-      buttons.appendChild(cancelButton);
-
-      var box = wrapper.getBoundingClientRect();
-      wrapper.style.top = ((window.innerHeight - box.height) / 2) + "px";
-      wrapper.style.left = ((window.innerWidth - box.width) / 2) + "px";
-
-      var submit = function () {
-        var params = getValues(options.fields, domFields);
-        if (params) {
-          close();
-          options.callback(params);
-        }
-      };
-
-      form.addEventListener("submit", function (e) {
-        e.preventDefault();
-        submit();
-      });
-
-      form.addEventListener("keydown", function (e) {
-        if (e.keyCode == 27) {
-          e.preventDefault();
-          close();
-        } else if (e.keyCode == 13 && !(e.ctrlKey || e.metaKey || e.shiftKey)) {
-          e.preventDefault();
-          submit();
-        } else if (e.keyCode == 9) {
-          window.setTimeout(function () {
-            if (!wrapper.contains(document.activeElement)) { close(); }
-          }, 500);
-        }
-      });
-
-      var input = form.elements[0];
-      if (input) { input.focus(); }
-    }
-
-    function getValues(fields, domFields) {
-      var result = Object.create(null), i = 0;
-      for (var name in fields) {
-        var field = fields[name], dom = domFields[i++];
-        var value = field.read(dom), bad = field.validate(value);
-        if (bad) {
-          reportInvalid(dom, bad);
-          return null
-        }
-        result[name] = field.clean(value);
-      }
-      return result
-    }
-
-    function reportInvalid(dom, message) {
-      // FIXME this is awful and needs a lot more work
-      var parent = dom.parentNode;
-      var msg = parent.appendChild(document.createElement("div"));
-      msg.style.left = (dom.offsetLeft + dom.offsetWidth + 2) + "px";
-      msg.style.top = (dom.offsetTop - 5) + "px";
-      msg.className = "ProseMirror-invalid";
-      msg.textContent = message;
-      setTimeout(function () { return parent.removeChild(msg); }, 1500);
-    }
-
-    // ::- The type of field that `FieldPrompt` expects to be passed to it.
-    var Field = function Field(options) { this.options = options; };
-
-    // render:: (state: EditorState, props: Object) → dom.Node
-    // Render the field to the DOM. Should be implemented by all subclasses.
-
-    // :: (dom.Node) → any
-    // Read the field's value from its DOM node.
-    Field.prototype.read = function read (dom) { return dom.value };
-
-    // :: (any) → ?string
-    // A field-type-specific validation function.
-    Field.prototype.validateType = function validateType (_value) {};
-
-    Field.prototype.validate = function validate (value) {
-      if (!value && this.options.required)
-        { return "Required field" }
-      return this.validateType(value) || (this.options.validate && this.options.validate(value))
-    };
-
-    Field.prototype.clean = function clean (value) {
-      return this.options.clean ? this.options.clean(value) : value
-    };
-
-    // ::- A field class for single-line text fields.
-    var TextField = /*@__PURE__*/(function (Field) {
-      function TextField () {
-        Field.apply(this, arguments);
-      }
-
-      if ( Field ) TextField.__proto__ = Field;
-      TextField.prototype = Object.create( Field && Field.prototype );
-      TextField.prototype.constructor = TextField;
-
-      TextField.prototype.render = function render () {
-        var input = document.createElement("input");
-        input.type = "text";
-        input.placeholder = this.options.label;
-        input.value = this.options.value || "";
-        input.autocomplete = "off";
-        return input
-      };
-
-      return TextField;
-    }(Field));
-
-    // Helpers to create specific types of items
-
-    function canInsert(state, nodeType) {
-      var $from = state.selection.$from;
-      for (var d = $from.depth; d >= 0; d--) {
-        var index = $from.index(d);
-        if ($from.node(d).canReplaceWith(index, index, nodeType)) { return true }
-      }
-      return false
-    }
-
-    function insertImageItem(nodeType) {
-      return new MenuItem({
-        title: "Insert image",
-        label: "Image",
-        enable: function enable(state) { return canInsert(state, nodeType) },
-        run: function run(state, _, view) {
-          var ref = state.selection;
-          var from = ref.from;
-          var to = ref.to;
-          var attrs = null;
-          if (state.selection instanceof NodeSelection && state.selection.node.type == nodeType)
-            { attrs = state.selection.node.attrs; }
-          openPrompt({
-            title: "Insert image",
-            fields: {
-              src: new TextField({label: "Location", required: true, value: attrs && attrs.src}),
-              title: new TextField({label: "Title", value: attrs && attrs.title}),
-              alt: new TextField({label: "Description",
-                                  value: attrs ? attrs.alt : state.doc.textBetween(from, to, " ")})
-            },
-            callback: function callback(attrs) {
-              view.dispatch(view.state.tr.replaceSelectionWith(nodeType.createAndFill(attrs)));
-              view.focus();
-            }
-          });
-        }
-      })
-    }
-
-    function cmdItem(cmd, options) {
-      var passedOptions = {
-        label: options.title,
-        run: cmd
-      };
-      for (var prop in options) { passedOptions[prop] = options[prop]; }
-      if ((!options.enable || options.enable === true) && !options.select)
-        { passedOptions[options.enable ? "enable" : "select"] = function (state) { return cmd(state); }; }
-
-      return new MenuItem(passedOptions)
-    }
-
-    function markActive(state, type) {
-      var ref = state.selection;
-      var from = ref.from;
-      var $from = ref.$from;
-      var to = ref.to;
-      var empty = ref.empty;
-      if (empty) { return type.isInSet(state.storedMarks || $from.marks()) }
-      else { return state.doc.rangeHasMark(from, to, type) }
-    }
-
-    function markItem(markType, options) {
-      var passedOptions = {
-        active: function active(state) { return markActive(state, markType) },
-        enable: true
-      };
-      for (var prop in options) { passedOptions[prop] = options[prop]; }
-      return cmdItem(toggleMark(markType), passedOptions)
-    }
-
-    function linkItem(markType) {
-      return new MenuItem({
-        title: "Add or remove link",
-        icon: icons.link,
-        active: function active(state) { return markActive(state, markType) },
-        enable: function enable(state) { return !state.selection.empty },
-        run: function run(state, dispatch, view) {
-          if (markActive(state, markType)) {
-            toggleMark(markType)(state, dispatch);
-            return true
-          }
-          openPrompt({
-            title: "Create a link",
-            fields: {
-              href: new TextField({
-                label: "Link target",
-                required: true
-              }),
-              title: new TextField({label: "Title"})
-            },
-            callback: function callback(attrs) {
-              toggleMark(markType, attrs)(view.state, view.dispatch);
-              view.focus();
-            }
-          });
-        }
-      })
-    }
-
-    function wrapListItem(nodeType, options) {
-      return cmdItem(wrapInList(nodeType, options.attrs), options)
-    }
-
-    // :: (Schema) → Object
-    // Given a schema, look for default mark and node types in it and
-    // return an object with relevant menu items relating to those marks:
-    //
-    // **`toggleStrong`**`: MenuItem`
-    //   : A menu item to toggle the [strong mark](#schema-basic.StrongMark).
-    //
-    // **`toggleEm`**`: MenuItem`
-    //   : A menu item to toggle the [emphasis mark](#schema-basic.EmMark).
-    //
-    // **`toggleCode`**`: MenuItem`
-    //   : A menu item to toggle the [code font mark](#schema-basic.CodeMark).
-    //
-    // **`toggleLink`**`: MenuItem`
-    //   : A menu item to toggle the [link mark](#schema-basic.LinkMark).
-    //
-    // **`insertImage`**`: MenuItem`
-    //   : A menu item to insert an [image](#schema-basic.Image).
-    //
-    // **`wrapBulletList`**`: MenuItem`
-    //   : A menu item to wrap the selection in a [bullet list](#schema-list.BulletList).
-    //
-    // **`wrapOrderedList`**`: MenuItem`
-    //   : A menu item to wrap the selection in an [ordered list](#schema-list.OrderedList).
-    //
-    // **`wrapBlockQuote`**`: MenuItem`
-    //   : A menu item to wrap the selection in a [block quote](#schema-basic.BlockQuote).
-    //
-    // **`makeParagraph`**`: MenuItem`
-    //   : A menu item to set the current textblock to be a normal
-    //     [paragraph](#schema-basic.Paragraph).
-    //
-    // **`makeCodeBlock`**`: MenuItem`
-    //   : A menu item to set the current textblock to be a
-    //     [code block](#schema-basic.CodeBlock).
-    //
-    // **`makeHead[N]`**`: MenuItem`
-    //   : Where _N_ is 1 to 6. Menu items to set the current textblock to
-    //     be a [heading](#schema-basic.Heading) of level _N_.
-    //
-    // **`insertHorizontalRule`**`: MenuItem`
-    //   : A menu item to insert a horizontal rule.
-    //
-    // The return value also contains some prefabricated menu elements and
-    // menus, that you can use instead of composing your own menu from
-    // scratch:
-    //
-    // **`insertMenu`**`: Dropdown`
-    //   : A dropdown containing the `insertImage` and
-    //     `insertHorizontalRule` items.
-    //
-    // **`typeMenu`**`: Dropdown`
-    //   : A dropdown containing the items for making the current
-    //     textblock a paragraph, code block, or heading.
-    //
-    // **`fullMenu`**`: [[MenuElement]]`
-    //   : An array of arrays of menu elements for use as the full menu
-    //     for, for example the [menu bar](https://github.com/prosemirror/prosemirror-menu#user-content-menubar).
-    function buildMenuItems(schema) {
-      var r = {}, type;
-      if (type = schema.marks.strong)
-        { r.toggleStrong = markItem(type, {title: "Toggle strong style", icon: icons.strong}); }
-      if (type = schema.marks.em)
-        { r.toggleEm = markItem(type, {title: "Toggle emphasis", icon: icons.em}); }
-      if (type = schema.marks.code)
-        { r.toggleCode = markItem(type, {title: "Toggle code font", icon: icons.code}); }
-      if (type = schema.marks.link)
-        { r.toggleLink = linkItem(type); }
-
-      if (type = schema.nodes.image)
-        { r.insertImage = insertImageItem(type); }
-      if (type = schema.nodes.bullet_list)
-        { r.wrapBulletList = wrapListItem(type, {
-          title: "Wrap in bullet list",
-          icon: icons.bulletList
-        }); }
-      if (type = schema.nodes.ordered_list)
-        { r.wrapOrderedList = wrapListItem(type, {
-          title: "Wrap in ordered list",
-          icon: icons.orderedList
-        }); }
-      if (type = schema.nodes.blockquote)
-        { r.wrapBlockQuote = wrapItem(type, {
-          title: "Wrap in block quote",
-          icon: icons.blockquote
-        }); }
-      if (type = schema.nodes.paragraph)
-        { r.makeParagraph = blockTypeItem(type, {
-          title: "Change to paragraph",
-          label: "Plain"
-        }); }
-      if (type = schema.nodes.code_block)
-        { r.makeCodeBlock = blockTypeItem(type, {
-          title: "Change to code block",
-          label: "Code"
-        }); }
-      if (type = schema.nodes.heading)
-        { for (var i = 1; i <= 10; i++)
-          { r["makeHead" + i] = blockTypeItem(type, {
-            title: "Change to heading " + i,
-            label: "Level " + i,
-            attrs: {level: i}
-          }); } }
-      if (type = schema.nodes.horizontal_rule) {
-        var hr = type;
-        r.insertHorizontalRule = new MenuItem({
-          title: "Insert horizontal rule",
-          label: "Horizontal rule",
-          enable: function enable(state) { return canInsert(state, hr) },
-          run: function run(state, dispatch) { dispatch(state.tr.replaceSelectionWith(hr.create())); }
-        });
-      }
-
-      var cut = function (arr) { return arr.filter(function (x) { return x; }); };
-      r.insertMenu = new Dropdown(cut([r.insertImage, r.insertHorizontalRule]), {label: "Insert"});
-      r.typeMenu = new Dropdown(cut([r.makeParagraph, r.makeCodeBlock, r.makeHead1 && new DropdownSubmenu(cut([
-        r.makeHead1, r.makeHead2, r.makeHead3, r.makeHead4, r.makeHead5, r.makeHead6
-      ]), {label: "Heading"})]), {label: "Type..."});
-
-      r.inlineMenu = [cut([r.toggleStrong, r.toggleEm, r.toggleCode, r.toggleLink])];
-      r.blockMenu = [cut([r.wrapBulletList, r.wrapOrderedList, r.wrapBlockQuote, joinUpItem,
-                          liftItem, selectParentNodeItem])];
-      r.fullMenu = r.inlineMenu.concat([[r.insertMenu, r.typeMenu]], [[undoItem, redoItem]], r.blockMenu);
-
-      return r
-    }
-
-    var mac$3 = typeof navigator != "undefined" ? /Mac/.test(navigator.platform) : false;
-
-    // :: (Schema, ?Object) → Object
-    // Inspect the given schema looking for marks and nodes from the
-    // basic schema, and if found, add key bindings related to them.
-    // This will add:
-    //
-    // * **Mod-b** for toggling [strong](#schema-basic.StrongMark)
-    // * **Mod-i** for toggling [emphasis](#schema-basic.EmMark)
-    // * **Mod-`** for toggling [code font](#schema-basic.CodeMark)
-    // * **Ctrl-Shift-0** for making the current textblock a paragraph
-    // * **Ctrl-Shift-1** to **Ctrl-Shift-Digit6** for making the current
-    //   textblock a heading of the corresponding level
-    // * **Ctrl-Shift-Backslash** to make the current textblock a code block
-    // * **Ctrl-Shift-8** to wrap the selection in an ordered list
-    // * **Ctrl-Shift-9** to wrap the selection in a bullet list
-    // * **Ctrl->** to wrap the selection in a block quote
-    // * **Enter** to split a non-empty textblock in a list item while at
-    //   the same time splitting the list item
-    // * **Mod-Enter** to insert a hard break
-    // * **Mod-_** to insert a horizontal rule
-    // * **Backspace** to undo an input rule
-    // * **Alt-ArrowUp** to `joinUp`
-    // * **Alt-ArrowDown** to `joinDown`
-    // * **Mod-BracketLeft** to `lift`
-    // * **Escape** to `selectParentNode`
-    //
-    // You can suppress or map these bindings by passing a `mapKeys`
-    // argument, which maps key names (say `"Mod-B"` to either `false`, to
-    // remove the binding, or a new key name string.
     function buildKeymap$1(schema, mapKeys) {
-      var keys = {}, type;
+      let keys = {}, type;
       function bind(key, cmd) {
         if (mapKeys) {
-          var mapped = mapKeys[key];
-          if (mapped === false) { return }
-          if (mapped) { key = mapped; }
+          let mapped = mapKeys[key];
+          if (mapped === false) return
+          if (mapped) key = mapped;
         }
         keys[key] = cmd;
       }
@@ -30851,7 +29751,7 @@
       bind("Mod-z", undo$1);
       bind("Shift-Mod-z", redo$1);
       bind("Backspace", undoInputRule);
-      if (!mac$3) { bind("Mod-y", redo$1); }
+      if (!mac$3) bind("Mod-y", redo$1);
 
       bind("Alt-ArrowUp", joinUp);
       bind("Alt-ArrowDown", joinDown);
@@ -30867,22 +29767,22 @@
         bind("Mod-I", toggleMark(type));
       }
       if (type = schema.marks.code)
-        { bind("Mod-`", toggleMark(type)); }
+        bind("Mod-`", toggleMark(type));
 
       if (type = schema.nodes.bullet_list)
-        { bind("Shift-Ctrl-8", wrapInList(type)); }
+        bind("Shift-Ctrl-8", wrapInList(type));
       if (type = schema.nodes.ordered_list)
-        { bind("Shift-Ctrl-9", wrapInList(type)); }
+        bind("Shift-Ctrl-9", wrapInList(type));
       if (type = schema.nodes.blockquote)
-        { bind("Ctrl->", wrapIn(type)); }
+        bind("Ctrl->", wrapIn(type));
       if (type = schema.nodes.hard_break) {
-        var br = type, cmd = chainCommands(exitCode, function (state, dispatch) {
+        let br = type, cmd = chainCommands(exitCode, (state, dispatch) => {
           dispatch(state.tr.replaceSelectionWith(br.create()).scrollIntoView());
           return true
         });
         bind("Mod-Enter", cmd);
         bind("Shift-Enter", cmd);
-        if (mac$3) { bind("Ctrl-Enter", cmd); }
+        if (mac$3) bind("Ctrl-Enter", cmd);
       }
       if (type = schema.nodes.list_item) {
         bind("Enter", splitListItem(type));
@@ -30890,14 +29790,14 @@
         bind("Mod-]", sinkListItem(type));
       }
       if (type = schema.nodes.paragraph)
-        { bind("Shift-Ctrl-0", setBlockType(type)); }
+        bind("Shift-Ctrl-0", setBlockType(type));
       if (type = schema.nodes.code_block)
-        { bind("Shift-Ctrl-\\", setBlockType(type)); }
+        bind("Shift-Ctrl-\\", setBlockType(type));
       if (type = schema.nodes.heading)
-        { for (var i = 1; i <= 6; i++) { bind("Shift-Ctrl-" + i, setBlockType(type, {level: i})); } }
+        for (let i = 1; i <= 6; i++) bind("Shift-Ctrl-" + i, setBlockType(type, {level: i}));
       if (type = schema.nodes.horizontal_rule) {
-        var hr = type;
-        bind("Mod-_", function (state, dispatch) {
+        let hr = type;
+        bind("Mod-_", (state, dispatch) => {
           dispatch(state.tr.replaceSelectionWith(hr.create()).scrollIntoView());
           return true
         });
@@ -30906,22 +29806,40 @@
       return keys
     }
 
-    // : (NodeType) → InputRule
+    // https://github.com/ProseMirror/prosemirror-example-setup/blob/master/src/inputrules.js
+
+    // https://discuss.prosemirror.net/t/input-rules-for-wrapping-marks/537/10
+    function markInputRule(regexp, markType, getAttrs) {
+      return new InputRule(regexp, (state, match, start, end) => {
+        let attrs = getAttrs instanceof Function ? getAttrs(match) : getAttrs;
+        let tr = state.tr;
+        if (match[1]) {
+          let textStart = start + match[0].indexOf(match[1]);
+          let textEnd = textStart + match[1].length;
+          if (textEnd < end) tr.delete(textEnd, end);
+          if (textStart > start) tr.delete(start, textStart);
+          end = start + match[1].length;
+        }
+        tr.addMark(start, end, markType.create(attrs));
+        tr.removeStoredMark(markType); // Do not continue with mark.
+        return tr
+      })
+    }
+
+    // : (NodeType, number) → InputRule
     // Given a blockquote node type, returns an input rule that turns `"> "`
     // at the start of a textblock into a blockquote.
     function blockQuoteRule(nodeType) {
       return wrappingInputRule(/^\s*>\s$/, nodeType)
     }
 
-    // : (NodeType) → InputRule
     // Given a list node type, returns an input rule that turns a number
     // followed by a dot at the start of a textblock into an ordered list.
     function orderedListRule(nodeType) {
-      return wrappingInputRule(/^(\d+)\.\s$/, nodeType, function (match) { return ({order: +match[1]}); },
-                               function (match, node) { return node.childCount + node.attrs.order == +match[1]; })
+      return wrappingInputRule(/^(\d+)\.\s$/, nodeType, match => ({order: +match[1]}),
+                               (match, node) => node.childCount + node.attrs.order == +match[1])
     }
 
-    // : (NodeType) → InputRule
     // Given a list node type, returns an input rule that turns a bullet
     // (dash, plush, or asterisk) at the start of a textblock into a
     // bullet list.
@@ -30929,151 +29847,122 @@
       return wrappingInputRule(/^\s*([-+*])\s$/, nodeType)
     }
 
-    // : (NodeType) → InputRule
     // Given a code block node type, returns an input rule that turns a
     // textblock starting with three backticks into a code block.
     function codeBlockRule(nodeType) {
       return textblockTypeInputRule(/^```$/, nodeType)
     }
 
-    // : (NodeType, number) → InputRule
     // Given a node type and a maximum level, creates an input rule that
     // turns up to that number of `#` characters followed by a space at
     // the start of a textblock into a heading whose level corresponds to
     // the number of `#` signs.
     function headingRule(nodeType, maxLevel) {
       return textblockTypeInputRule(new RegExp("^(#{1," + maxLevel + "})\\s$"),
-                                    nodeType, function (match) { return ({level: match[1].length}); })
+                                    nodeType, match => ({level: match[1].length}))
+    }
+
+    function emphasisRule(nodeType) {
+      return markInputRule(/\/(\S(?:|.*?\S))\/$/, nodeType)
+    }
+
+    function strongRule(nodeType) {
+      return markInputRule(/\*(\S(?:|.*?\S))\*$/, nodeType)
     }
 
     // : (Schema) → Plugin
     // A set of input rules for creating the basic block quotes, lists,
     // code blocks, and heading.
     function buildInputRules(schema) {
-      var rules = smartQuotes.concat(ellipsis, emDash), type;
-      if (type = schema.nodes.blockquote) { rules.push(blockQuoteRule(type)); }
-      if (type = schema.nodes.ordered_list) { rules.push(orderedListRule(type)); }
-      if (type = schema.nodes.bullet_list) { rules.push(bulletListRule(type)); }
-      if (type = schema.nodes.code_block) { rules.push(codeBlockRule(type)); }
-      if (type = schema.nodes.heading) { rules.push(headingRule(type, 6)); }
-      return inputRules({rules: rules})
+      let rules = smartQuotes.concat(ellipsis, emDash), type;
+      if (type = schema.nodes.blockquote) rules.push(blockQuoteRule(type));
+      if (type = schema.nodes.ordered_list) rules.push(orderedListRule(type));
+      if (type = schema.nodes.bullet_list) rules.push(bulletListRule(type));
+      if (type = schema.nodes.code_block) rules.push(codeBlockRule(type));
+      if (type = schema.nodes.heading) rules.push(headingRule(type, 6));
+
+      if (type = schema.marks.strong) rules.push(strongRule(type));
+      if (type = schema.marks.em) rules.push(emphasisRule(type));
+      return inputRules({rules})
     }
 
-    // !! This module exports helper functions for deriving a set of basic
-    // menu items, input rules, or key bindings from a schema. These
-    // values need to know about the schema for two reasons—they need
-    // access to specific instances of node and mark types, and they need
-    // to know which of the node and mark types that they know about are
-    // actually present in the schema.
-    //
-    // The `exampleSetup` plugin ties these together into a plugin that
-    // will automatically enable this basic functionality in an editor.
+    // https://github.com/ProseMirror/prosemirror-example-setup/blob/master/src/index.js
 
-    // :: (Object) → [Plugin]
-    // A convenience plugin that bundles together a simple menu with basic
-    // key bindings, input rules, and styling for the example schema.
-    // Probably only useful for quickly setting up a passable
-    // editor—you'll need more control over your settings in most
-    // real-world situations.
-    //
-    //   options::- The following options are recognized:
-    //
-    //     schema:: Schema
-    //     The schema to generate key bindings and menu items for.
-    //
-    //     mapKeys:: ?Object
-    //     Can be used to [adjust](#example-setup.buildKeymap) the key bindings created.
-    //
-    //     menuBar:: ?bool
-    //     Set to false to disable the menu bar.
-    //
-    //     history:: ?bool
-    //     Set to false to disable the history plugin.
-    //
-    //     floatingMenu:: ?bool
-    //     Set to false to make the menu bar non-floating.
-    //
-    //     menuContent:: [[MenuItem]]
-    //     Can be used to override the menu content.
-    function exampleSetup(options) {
-      var plugins = [
+    //export {buildKeymap, buildInputRules}
+
+    function pmSetup(options) {
+      let plugins = [
         buildInputRules(options.schema),
         keymap$1(buildKeymap$1(options.schema, options.mapKeys)),
         keymap$1(baseKeymap),
         dropCursor(),
         gapCursor()
       ];
-      if (options.menuBar !== false)
-        { plugins.push(menuBar({floating: options.floatingMenu !== false,
-                              content: options.menuContent || buildMenuItems(options.schema).fullMenu})); }
+
       if (options.history !== false)
-        { plugins.push(history$1()); }
+        plugins.push(history$1());
 
       return plugins.concat(new Plugin({
         props: {
-          attributes: {class: "ProseMirror-example-setup-style"}
+          attributes: {class: "ProseMirror-setup-style"}
         }
       }))
     }
 
+    // https://prosemirror.net/examples/basic
+
+    const pmSchema = new Schema({
+      nodes: addListNodes(schema.spec.nodes, "paragraph block*", "block"),
+      marks: schema.spec.marks
+    });
+
     // stopify is included via <script> in /public
     // console
 
-    // javascript
+    // setup
     window.addEventListener("load", onLoad);
 
     function onLoad() {
+      // html setup
       let main = document.createElement("main");
       main.id = "main";
       document.body.appendChild(main);
 
       let cmnode = document.createElement("div");
       cmnode.id = "cmnode";
-      main.appendChild(cmnode);
+
       let pmnode = document.createElement("div");
-      pmnode.id = "cmnode";
+      pmnode.id = "pmnode";
+      let pmdoc = document.createElement("div");
+      pmdoc.id = "pmdoc";
+      let pmdoch1 = document.createElement("h1");
+      pmdoch1.innerHTML = "Hello ProseMirror";
+      let pmdocp = document.createElement("p");
+      pmdocp.innerHTML = "Here we have an editor";
+      pmdoc.appendChild(pmdoch1);
+      pmdoc.appendChild(pmdocp);
+      // main.appendChild(pmdoc); // intentionally omitted
+
       main.appendChild(pmnode);
+      main.appendChild(cmnode);
+      document.body.style.fontSize = "1.1rem";
 
-      document.body.style.fontSize = "1.2rem";
-
-      /////////////////////////////////////////////////////////////////////////////
-      // code mirror next //
-      /////////////////////////////////////////////////////////////////////////////
-
-      let view = new EditorView({
-        state: EditorState.create({
-          doc: 
-`// Hello CodeMirror next
-let x = 5;
-console.log(x)
-// ctrl-enter runs this editor
-// open console to see console.log`    ,
-          extensions: [basicSetup]
-        }),
-        parent: cmnode
-      });
+      // javascript setup
 
       /////////////////////////////////////////////////////////////////////////////
       // prosemirror //
       /////////////////////////////////////////////////////////////////////////////
 
+      let pmview = prosemirrorInit(EditorView$1, EditorState$1,
+                                   pmdoc, pmSetup, pmSchema, pmnode);
+      pmview.dom.style.marginLeft = "1rem";
 
-      // Mix the nodes from prosemirror-schema-list into the basic schema to
-      // create a schema with list support.
-      const mySchema = new Schema({
-        nodes: addListNodes(schema.spec.nodes, "paragraph block*", "block"),
-        marks: schema.spec.marks
-      });
+      /////////////////////////////////////////////////////////////////////////////
+      // code mirror next //
+      /////////////////////////////////////////////////////////////////////////////
 
-      //window.view = new proseEditorView(document.querySelector("#editor"), {
-      let pview = new EditorView$1(document.querySelector("#editor"), {
-        state: EditorState$1.create({
-          doc: DOMParser.fromSchema(mySchema).parse(document.querySelector("#content")),
-          plugins: exampleSetup({schema: mySchema})
-        })
-      });
-
-
+      let cmview = codemirrorInit(EditorView, EditorState,
+                                  startupDoc, basicSetup, pmnode);
 
       /////////////////////////////////////////////////////////////////////////////
       // execution //
@@ -31083,7 +29972,7 @@ console.log(x)
 
       function onKeyDown(evt) {
         if (evt.ctrlKey && evt.key == "Enter") {
-          run(view.state.doc.toString());
+          run(cmview.state.doc.toString());
         }
       }
 
@@ -31094,6 +29983,33 @@ console.log(x)
         runner.g = globalThis; // hack
         runner.run(result => result); //ignoring result
       }
+    }
+
+
+    //
+    //  utility
+    //
+
+
+    function codemirrorInit (EditorView, EditorState, doc, setup, parent) {
+      let view = new EditorView({
+        state: EditorState.create({
+          doc,
+          extensions: [setup]
+        }),
+        parent
+      });
+      return view;
+    }
+
+    function prosemirrorInit(EditorView, EditorState, docToParse, setup, schema, parent) {
+      let view = new EditorView(parent, {
+        state: EditorState.create({
+          doc: DOMParser.fromSchema(pmSchema).parse(docToParse),
+          plugins: setup({schema})
+        })
+      });
+      return view;
     }
 
 }());

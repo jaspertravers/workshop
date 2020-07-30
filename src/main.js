@@ -1,70 +1,59 @@
 // stopify is included via <script> in /public
 // codemirror
-import {EditorState, EditorView, basicSetup} from './codemirror/codemirror.js'
+import {EditorState as cmEditorState,
+        EditorView as cmEditorView,
+        basicSetup,
+        startupDoc} from './codemirror/codemirror.js'
 // prosemirror
-import {EditorState as proseEditorState} from "prosemirror-state"
-import {EditorView as proseEditorView} from "prosemirror-view"
-import {Schema, DOMParser} from "prosemirror-model"
-import {schema} from "prosemirror-schema-basic"
-import {addListNodes} from "prosemirror-schema-list"
-import {exampleSetup} from "prosemirror-example-setup"
+import {EditorState as pmEditorState,
+        EditorView as pmEditorView,
+        DOMParser, pmSetup, pmSchema, pmStartupDoc} from './prosemirror/prosemirror.js'
 // console
 
-// javascript
+// setup
 window.addEventListener("load", onLoad);
 
 function onLoad() {
+  // html setup
   let main = document.createElement("main");
   main.id = "main";
   document.body.appendChild(main);
 
   let cmnode = document.createElement("div");
   cmnode.id = "cmnode";
-  main.appendChild(cmnode);
+
   let pmnode = document.createElement("div");
-  pmnode.id = "cmnode";
+  pmnode.id = "pmnode";
+  let pmdoc = document.createElement("div");
+  pmdoc.id = "pmdoc";
+  let pmdoch1 = document.createElement("h1");
+  pmdoch1.innerHTML = "Hello ProseMirror";
+  let pmdocp = document.createElement("p");
+  pmdocp.innerHTML = "Here we have an editor";
+  pmdoc.appendChild(pmdoch1);
+  pmdoc.appendChild(pmdocp);
+  // main.appendChild(pmdoc); // intentionally omitted
+
   main.appendChild(pmnode);
+  main.appendChild(cmnode);
+  document.body.style.fontSize = "1.1rem";
 
-  document.body.style.fontSize = "1.2rem";
-
-  /////////////////////////////////////////////////////////////////////////////
-  // code mirror next //
-  /////////////////////////////////////////////////////////////////////////////
-
-  let view = new EditorView({
-    state: EditorState.create({
-      doc: 
-`// Hello CodeMirror next
-let x = 5;
-console.log(x)
-// ctrl-enter runs this editor
-// open console to see console.log`,
-      extensions: [basicSetup]
-    }),
-    parent: cmnode
-  })
+  // javascript setup
 
   /////////////////////////////////////////////////////////////////////////////
   // prosemirror //
   /////////////////////////////////////////////////////////////////////////////
 
+  let pmview = prosemirrorInit(pmEditorView, pmEditorState,
+                               pmdoc, pmSetup, pmSchema, pmnode);
+  pmview.dom.style.marginLeft = "1rem";
 
-  // Mix the nodes from prosemirror-schema-list into the basic schema to
-  // create a schema with list support.
-  const mySchema = new Schema({
-    nodes: addListNodes(schema.spec.nodes, "paragraph block*", "block"),
-    marks: schema.spec.marks
-  })
+  /////////////////////////////////////////////////////////////////////////////
+  // code mirror next //
+  /////////////////////////////////////////////////////////////////////////////
 
-  //window.view = new proseEditorView(document.querySelector("#editor"), {
-  let pview = new proseEditorView(document.querySelector("#editor"), {
-    state: proseEditorState.create({
-      doc: DOMParser.fromSchema(mySchema).parse(document.querySelector("#content")),
-      plugins: exampleSetup({schema: mySchema})
-    })
-  })
-
-
+  let cmview = codemirrorInit(cmEditorView, cmEditorState,
+                              startupDoc, basicSetup, pmnode);
 
   /////////////////////////////////////////////////////////////////////////////
   // execution //
@@ -74,7 +63,7 @@ console.log(x)
 
   function onKeyDown(evt) {
     if (evt.ctrlKey && evt.key == "Enter") {
-      run(view.state.doc.toString());
+      run(cmview.state.doc.toString());
     }
   }
 
@@ -85,4 +74,31 @@ console.log(x)
     runner.g = globalThis; // hack
     runner.run(result => result); //ignoring result
   }
+}
+
+
+//
+//  utility
+//
+
+
+function codemirrorInit (EditorView, EditorState, doc, setup, parent) {
+  let view = new EditorView({
+    state: EditorState.create({
+      doc,
+      extensions: [setup]
+    }),
+    parent
+  })
+  return view;
+}
+
+function prosemirrorInit(EditorView, EditorState, docToParse, setup, schema, parent) {
+  let view = new EditorView(parent, {
+    state: EditorState.create({
+      doc: DOMParser.fromSchema(pmSchema).parse(docToParse),
+      plugins: setup({schema})
+    })
+  })
+  return view;
 }

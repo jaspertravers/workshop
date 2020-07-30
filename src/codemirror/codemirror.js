@@ -5,7 +5,7 @@
 //https://codemirror.net/6/docs/guide/
 //
 import {keymap, highlightSpecialChars, multipleSelections} from "@codemirror/next/view"
-// Extension is a type...
+// Extension is a type, ignoring for now.
 //import {Extension} from "@codemirror/next/state"
 import {history, historyKeymap} from "@codemirror/next/history"
 import {foldGutter, foldKeymap} from "@codemirror/next/fold"
@@ -52,3 +52,10 @@ export const basicSetup = [
 
 export {EditorView} from "@codemirror/next/view"
 export {EditorState} from "@codemirror/next/state"
+export const startupDoc = 
+`// Hello CodeMirror next
+let x = 5;
+console.log(x)
+// ctrl-enter runs this editor
+// open console to see console.log
+`

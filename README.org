@@ -10,11 +10,24 @@ Communication, computation, work.
 - https://prosemirror.net/
 - https://rollupjs.org/guide/en/
 
-* Notes
-** Developtment/Build
-How this is made. How this is built.
+** Tasks
+*** TODO codemirror component
+**** TODO put in box, make easy to make
+*** TODO prosemirror component
+**** TODO put in box, make easy to make
+**** TODO styles (margin, horizontal rule)
+**** TODO markdown
+**** TODO header bar
+*** TODO tabs: general UI buttons/message system?
+*** TODO storage
+**** TODO localstorage
+**** TODO export/import
+*** TODO
 
+* Notes
+** Developtment
 *** Development log
+**** npm/build
 #+BEGIN_SRC sh
 npm init
 
@@ -71,12 +84,11 @@ Copying bundle into place and including in ~public/index.html~, I suppose I coul
 
 ~npm run build~ script set in ~package.json~
 
-backspace on empty editor throws "RangeError"
-
-~view.state.doc.toString()~
-to get string in editor for stopify
-
-time for prosemirror
+#+BEGIN_SRC sh
+npm install --save-dev rollup-plugin-serve
+npm install --save-dev rollup-plugin-livereload
+#+END_SRC
+editing config file to match
 
 #+BEGIN_SRC sh
 npm install prosemirror-keymap prosemirror-history prosemirror-commands prosemirror-dropcursor prosemirror-gapcursor prosemirror-menu prosemirror-inputrules prosemirror-schema-list prosemirror-schema-basic
@@ -84,7 +96,15 @@ npm install prosemirror-keymap prosemirror-history prosemirror-commands prosemir
 npm install prosemirror-example-setup
 #+END_SRC
 
+**** Editors
+backspace on empty editor throws "RangeError"
 
+~view.state.doc.toString()~
+to get string in editor for stopify
+
+time for prosemirror
+taken most things from ~prosemirror-example-setup~ and the basic editor example.
+- https://prosemirror.net/examples/basic/
 
 *** Links
 - https://git-scm.com/book/
@@ -114,8 +134,37 @@ Towards a live sandbox.
 ** Prosemirror
 Content editor.
 
+*** Markdown
+Prosemirror does not have a package out of the box that supports live markdown editing. It does, however, support some markdown features. Specifically, the ones where symbols start at the beginning of the line. Headers (#), lists (-), ordered lists (1.), code fences (```), and blockquotes (>).
+
+These are the "easier" set of input rules to transform as they all require starting at the beginning of the line. Markdown styles within a line, such as bold, italics, underline, strikethrough, and link styling require relatively more complicated regex to describe and have many edge cases when combined.
+
+These are setup under the =inputrules= module.
+
+I wonder if it would be easy to have a markdown-code view within a leaf and rendered outside of the current focus.
+
+The key here is going to be ~rulebuilders.js~ in =prosemirror-inputrules=
+
+We have a relatively broken markdown input set in ~inputrules.js~. For now I'll leave it as it, it'll take a deep dive to figure out how to fix it.
+
+- Backspacing into a marked section sets the mark to the current cursor.
+- Both styles cannot be set.
+- I think there is a better way to do this within nodes and using the ~prosemirror-markdown~ package.
+
+Might be able to figure out what gitlab did to make their editor work.
+
+
+https://prosemirror.net/docs/ref/#inputrules
+
 *** Links
 - https://prosemirror.net/docs/guide/
+- https://prosemirror.net/docs/ref/#inputrules
+- https://gitlab.com/gitlab-org/gitlab-foss/-/tree/master/app/assets/javascripts/behaviors/markdown
+- https://github.com/ueberdosis/tiptap/tree/master/packages/tiptap-extensions
+- https://github.com/ueberdosis/tiptap
+
+There's a big opportunity to make this work correctly. Searching the tiptap issue list for "mark" yielded multiple open issues regarding markdown ergonomics.
+
 
 ** Console
 debug/repl style output; printing from code
@@ -134,6 +183,9 @@ creative coding output
 Tech to check out; capabilities to explore
 
 - git; this repo
+- *mirror nodes for variolite local versioning. This is exactly the architecture these systems are built to explore.
+- Write a ~prosemirror-full-markdown~ package... maybe.
+
 
 *** Links
 - https://github.com/yjs/yjs
@@ -151,6 +203,7 @@ As always, incomplete.
 - http://worrydream.com/refs/Sutherland-Sketchpad.pdf
 - https://paper.dropbox.com/doc/Stamper-An-Artboard-Oriented-Programming-Environment--A4V0v1SHSKMwJb74PRF4eBnPAg-QXtfMXshBFBNCu6iCtx2J
 - https://makespace.fun/
+- http://www.joelotter.com/kajero/
 
 * Footer
 Note: Github does not render ~.org~ files correctly. This file is edited and read in emacs with org mode.
