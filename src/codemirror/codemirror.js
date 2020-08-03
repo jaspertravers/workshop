@@ -52,7 +52,7 @@ export const basicSetup = [
 
 export {EditorView} from "@codemirror/next/view"
 export {EditorState} from "@codemirror/next/state"
-export const startupDoc = 
+export const cmStartupDoc =
 `// Hello CodeMirror next
 let x = 5;
 console.log(x)

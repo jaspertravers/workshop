@@ -3,15 +3,16 @@
 import {EditorState as cmEditorState,
         EditorView as cmEditorView,
         basicSetup,
-        startupDoc} from './codemirror/codemirror.js'
+        cmStartupDoc} from './codemirror/codemirror.js'
 // prosemirror
 import {EditorState as pmEditorState,
         EditorView as pmEditorView,
         DOMParser, pmSetup, pmSchema, pmStartupDoc} from './prosemirror/prosemirror.js'
 // console
+// card
 
 // setup
-window.addEventListener("load", onLoad);
+window.onload = onLoad;
 
 function onLoad() {
   // html setup
@@ -19,11 +20,23 @@ function onLoad() {
   main.id = "main";
   document.body.appendChild(main);
 
+  let tabs = document.createElement("div");
+  tabs.id = "tabs";
+  tabs.style.width = "100%";
+  tabs.style.height = "36px";
+  tabs.style.border = "1px dashed #999";
+
+  let editorContainer = document.createElement("div");
+  editorContainer.id = "editorContainer";
+  editorContainer.style.display = "flex"
+
   let cmnode = document.createElement("div");
   cmnode.id = "cmnode";
+  cmnode.style.width = "50%"
 
   let pmnode = document.createElement("div");
   pmnode.id = "pmnode";
+  pmnode.style.width = "50%"
   let pmdoc = document.createElement("div");
   pmdoc.id = "pmdoc";
   let pmdoch1 = document.createElement("h1");
@@ -34,71 +47,83 @@ function onLoad() {
   pmdoc.appendChild(pmdocp);
   // main.appendChild(pmdoc); // intentionally omitted
 
-  main.appendChild(pmnode);
-  main.appendChild(cmnode);
+  main.appendChild(tabs);
+  main.appendChild(editorContainer);
+  editorContainer.appendChild(pmnode);
+  editorContainer.appendChild(cmnode);
+
   document.body.style.fontSize = "1.1rem";
 
   // javascript setup
 
-  /////////////////////////////////////////////////////////////////////////////
   // prosemirror //
-  /////////////////////////////////////////////////////////////////////////////
 
   let pmview = prosemirrorInit(pmEditorView, pmEditorState,
                                pmdoc, pmSetup, pmSchema, pmnode);
   pmview.dom.style.marginLeft = "1rem";
 
-  /////////////////////////////////////////////////////////////////////////////
   // code mirror next //
-  /////////////////////////////////////////////////////////////////////////////
 
   let cmview = codemirrorInit(cmEditorView, cmEditorState,
-                              startupDoc, basicSetup, pmnode);
-
-  /////////////////////////////////////////////////////////////////////////////
+                              cmStartupDoc, basicSetup, cmnode);
   // execution //
-  /////////////////////////////////////////////////////////////////////////////
 
   window.onkeydown = onKeyDown;
-
   function onKeyDown(evt) {
     if (evt.ctrlKey && evt.key == "Enter") {
       run(cmview.state.doc.toString());
     }
   }
 
+  //
+  //  utility
+  //
+
   function run(task) {
     let runner = stopify.stopifyLocally(task);
-    //somehow this is undefined here; I'm unsure how that's possible, probably rollup?
-    //runner.g = this; 
-    runner.g = globalThis; // hack
-    runner.run(result => result); //ignoring result
+    runner.g = window;
+    console.log(runner.g);
+    runner.run(result => console.log(result));
   }
-}
 
-
-//
-//  utility
-//
-
-
-function codemirrorInit (EditorView, EditorState, doc, setup, parent) {
-  let view = new EditorView({
-    state: EditorState.create({
-      doc,
-      extensions: [setup]
-    }),
-    parent
-  })
-  return view;
-}
-
-function prosemirrorInit(EditorView, EditorState, docToParse, setup, schema, parent) {
-  let view = new EditorView(parent, {
-    state: EditorState.create({
-      doc: DOMParser.fromSchema(pmSchema).parse(docToParse),
-      plugins: setup({schema})
+  function codemirrorInit (EditorView, EditorState, doc, setup, parent) {
+    let view = new EditorView({
+      state: EditorState.create({
+        doc,
+        extensions: [setup]
+      }),
+      parent
     })
-  })
-  return view;
+    return view;
+  }
+
+  function prosemirrorInit (EditorView, EditorState, docToParse, setup, schema, parent) {
+    let view = new EditorView(parent, {
+      state: EditorState.create({
+        doc: DOMParser.fromSchema(pmSchema).parse(docToParse),
+        plugins: setup({schema})
+      })
+    })
+    return view;
+  }
+
+  //window init for runtime
+  // imports
+  window.cmEditorState = cmEditorState;
+  window.cmEditorView = cmEditorView;
+  window.basicSetup = basicSetup;
+  window.cmStartupDoc = cmStartupDoc;
+  window.pmEditorState = pmEditorState;
+  window.pmEditorView = pmEditorView;
+  window.DOMParser = DOMParser;
+  window.pmSetup = pmSetup;
+  window.pmSchema = pmSchema;
+  window.pmStartupDoc = pmStartupDoc;
+  window.Card = Card;
+
+  //local
+  window.cmview = cmview;
+  window.pmview = pmview;
+  window.codemirrorInit = codemirrorInit;
+  window.prosemirrorInit = prosemirrorInit;
 }

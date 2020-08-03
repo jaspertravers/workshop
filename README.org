@@ -105,6 +105,19 @@ to get string in editor for stopify
 time for prosemirror
 taken most things from ~prosemirror-example-setup~ and the basic editor example.
 - https://prosemirror.net/examples/basic/
+**** Block
+
+| Block |          |        |
+|-------+----------+--------|
+|       | content  |        |
+|       | position |        |
+|       |          | top    |
+|       |          | left   |
+|       |          | width  |
+|       |          | height |
+|       |          |        |
+
+Block will be a div that has a child div to fill with content.
 
 *** Links
 - https://git-scm.com/book/
@@ -207,3 +220,40 @@ As always, incomplete.
 
 * Footer
 Note: Github does not render ~.org~ files correctly. This file is edited and read in emacs with org mode.
+
+* Flat
+
+Every editor hooked up to local storage.
+Every editor named and attached to a browser.
+Every editor tagged.
+See tiddlywiki tags and filters.
+
+execution order and setting of that order will be a fascinating problem
+
+#+BEGIN_SRC js
+var script = document.createElement('script');
+script.type = 'text/javascript'; //could this be module?
+script.src = 'script.js'; //can be cdn source
+document.head.appendChild(script);
+#+END_SRC
+
+| Boot | Viewport | Library | Workspace |
+
+Boot: Initializes Primitives
+- cm, pm, console, card, stopify
+
+Initializes visual interface via Viewport
+
+Viewport: Initializes Visual Interface
+- tabs bar
+
+Storage:
+
+#+BEGIN_SRC
+workspace
+  [space]
+    [card]
+      content
+
+content: cm | pm | console | canvas | iframe | webrtc
+#+END_SRC
