@@ -257,3 +257,8 @@ workspace
 
 content: cm | pm | console | canvas | iframe | webrtc
 #+END_SRC
+
+* [0/3]Tasks
+** TODO Fix prosemirror in box
+** TODO Fix codemirror in box
+** TODO Attach boot tab content to storage.

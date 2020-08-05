@@ -12,8 +12,5 @@ const pmSchema = new Schema({
   marks: schema.spec.marks
 })
 
-const pmStartupDoc = `Hello prosemirror`
-
 export {pmSchema}
-export {pmStartupDoc}
 export {EditorView, EditorState, DOMParser, pmSetup}

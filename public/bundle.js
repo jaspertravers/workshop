@@ -29732,10 +29732,36 @@ console.log(x)
       })
     }
 
-    // https://github.com/ProseMirror/prosemirror-example-setup/blob/master/src/keymap.js
-
     const mac$3 = typeof navigator != "undefined" ? /Mac/.test(navigator.platform) : false;
 
+    // :: (Schema, ?Object) → Object
+    // Inspect the given schema looking for marks and nodes from the
+    // basic schema, and if found, add key bindings related to them.
+    // This will add:
+    //
+    // * **Mod-b** for toggling [strong](#schema-basic.StrongMark)
+    // * **Mod-i** for toggling [emphasis](#schema-basic.EmMark)
+    // * **Mod-`** for toggling [code font](#schema-basic.CodeMark)
+    // * **Ctrl-Shift-0** for making the current textblock a paragraph
+    // * **Ctrl-Shift-1** to **Ctrl-Shift-Digit6** for making the current
+    //   textblock a heading of the corresponding level
+    // * **Ctrl-Shift-Backslash** to make the current textblock a code block
+    // * **Ctrl-Shift-8** to wrap the selection in an ordered list
+    // * **Ctrl-Shift-9** to wrap the selection in a bullet list
+    // * **Ctrl->** to wrap the selection in a block quote
+    // * **Enter** to split a non-empty textblock in a list item while at
+    //   the same time splitting the list item
+    // * **Mod-Enter** to insert a hard break
+    // * **Mod-_** to insert a horizontal rule
+    // * **Backspace** to undo an input rule
+    // * **Alt-ArrowUp** to `joinUp`
+    // * **Alt-ArrowDown** to `joinDown`
+    // * **Mod-BracketLeft** to `lift`
+    // * **Escape** to `selectParentNode`
+    //
+    // You can suppress or map these bindings by passing a `mapKeys`
+    // argument, which maps key names (say `"Mod-B"` to either `false`, to
+    // remove the binding, or a new key name string.
     function buildKeymap$1(schema, mapKeys) {
       let keys = {}, type;
       function bind(key, cmd) {
@@ -29916,69 +29942,242 @@ console.log(x)
       marks: schema.spec.marks
     });
 
-    const pmStartupDoc = `Hello prosemirror`;
+    const defaultString =
+`// allows re running
+let main;
+if (main = document.getElementById("main")) {
+  document.body.removeChild(main);
+}
+main = document.createElement("main");
+main.id = "main";
+document.body.appendChild(main);
+document.body.style.fontSize = "1.1rem";
+
+function buildStorage () {
+  const baseRoot = {spaces: [{cards: {content: null}}]}
+  window.localStorage.workshop = JSON.stringify(baseRoot)
+}
+
+if(!localStorage.workshop) { buildStorage() }
+
+// TODO interfacing functions
+
+//
+// execution
+//
+
+window.onkeydown = onKeyDown;
+function onKeyDown(evt) {
+  if (evt.ctrlKey && evt.key == "Enter") {
+    run(cmview.state.doc.toString());
+  }
+}
+
+// should be in a card
+function run(task) {
+  let runner = stopify.stopifyLocally(task, {newMethod: "direct"});
+  //console.log(runner)
+  runner.g = window;
+  //runner.run(result => console.log(result));
+  runner.run(result => result);
+}
+
+//should be in a card
+function codemirrorInit (EditorView, EditorState, doc, setup, parent) {
+  let view = new EditorView({
+    state: EditorState.create({
+      doc,
+      extensions: [setup]
+    }),
+    parent
+  })
+
+  // put it in parent's box
+  view.dom.style.height = parent.style.height;
+  return view;
+}
+
+function prosemirrorInit (EditorView, EditorState, docJSON, setup, schema, parent) {
+  let doc = schema.nodeFromJSON(JSON.parse(docJSON));
+
+  let view = new EditorView(parent, {
+    state: EditorState.create({
+      doc: doc,
+      plugins: setup({schema})
+    })
+  })
+
+  // put it in parent's box
+  view.dom.style.paddingLeft = "1rem";
+  view.dom.style.paddingRight = "0.5rem";
+  view.dom.style.height = parent.style.height;
+  view.dom.style.overflow = "auto";
+  return view;
+}
+
+//
+// visual interface
+//
+
+// TODO
+// should be in a card
+// function buildCard ({top, left, width, height}) {
+// stopify breaks parsing the {} destructuring
+function buildCard (position) {
+  let top, left, width, height;
+  top = position.top;
+  left = position.left;
+  width = position.width;
+  height = position.height;
+  let card = document.createElement("div");
+  card.classList.add("card");
+  card.style.border = "1px dashed black"
+  card.style.position = "absolute";
+  card.style.top = top + "px";
+  card.style.left = left + "px";
+  card.style.width = width + "px";
+  card.style.height = height + "px";
+  main.appendChild(card);
+
+  let content = document.createElement("div");
+  content.classList.add("content");
+  content.style.width = "100%";
+  content.style.height = "100%";
+
+  card.appendChild(content);
+
+  return card;
+}
+
+function buildVisualEnvironment () {
+  let pmcard = buildCard({top: 48, left: 48, width: 600, height: 600})
+  let pmview = prosemirrorInit(pmEditorView, pmEditorState,
+                               defaultProse, pmSetup, pmSchema, pmcard.firstChild)
+
+  let cmcard = buildCard({top: 48, left: 660, width: 700, height: 800})
+  let cmview = codemirrorInit(cmEditorView, cmEditorState,
+                              defaultString, basicSetup, cmcard.firstChild)
+
+  return {pmview, cmview};
+}
+let views = buildVisualEnvironment();
+let pmview = views.pmview;
+let cmview = views.cmview;
+`;
+
+    const defaultProse = `{
+  "type": "doc",
+  "content": [
+    {
+      "type": "heading",
+      "attrs": {
+        "level": 1
+      },
+      "content": [
+        {
+          "type": "text",
+          "text": "Workshop"
+        }
+      ]
+    },
+    {
+      "type": "paragraph",
+      "content": [
+        {
+          "type": "text",
+          "text": "This is the beginnings of a digital workshop. It is intended to be an environment to provide full interface and computational control to the user. To that end, this environment initially provides three primitives on top of the browser: execution control, a rich content editor, and a code editor. The environment is intended to be a prototyping tool in which any and all functionality can be directly tied to its source, as well as redefined and re-evaluated at any point."
+        }
+      ]
+    },
+    {
+      "type": "horizontal_rule"
+    },
+    {
+      "type": "paragraph",
+      "content": [
+        {
+          "type": "text",
+          "text": "The initial view is this rich text editor which has a few basic facilities of a markdown editor, the codemirror editor to the right and an execution control engine tied to control-Enter. "
+        }
+      ]
+    },
+    {
+      "type": "paragraph",
+      "content": [
+        {
+          "type": "text",
+          "text": "In the codemirror editor is the computational description for this page. Go ahead and try to run it, ctrl-enter anywhere will do. If you make any changes to that document, or say, add another code cell or tab to this page, running it will rebuild the entire document each time."
+        }
+      ]
+    },
+    {
+      "type": "paragraph"
+    },
+    {
+      "type": "paragraph",
+      "content": [
+        {
+          "type": "text",
+          "text": "This is just the most basic setup possible, in the days to come I will expand upon the initial content within the default setup and keep it all present and editable directly from the source. The Workshop is now in a state where all future development can occur within the system itself. With just a few more wires to connect to localStorage it will persist between saves and that’s the beginning of the adventure. "
+        }
+      ]
+    },
+    {
+      "type": "paragraph",
+      "content": [
+        {
+          "type": "text",
+          "text": "— Jasper"
+        }
+      ]
+    },
+    {
+      "type": "paragraph"
+    },
+    {
+      "type": "paragraph",
+      "content": [
+        {
+          "type": "text",
+          "text": "(P.S: I wrote this damn thing twice and the first was much better. Off to fix the localStorage…)"
+        }
+      ]
+    }
+  ]
+}`;
 
     // stopify is included via <script> in /public
-    // console
-    // card
+    //  default
 
     // setup
     window.onload = onLoad;
-
     function onLoad() {
-      // html setup
-      let main = document.createElement("main");
+      //
+      //  Base
+      //
+      let main;
+      if (main = document.getElementById("main")) {
+        document.body.removeChild(main);
+      }
+      main = document.createElement("main");
       main.id = "main";
       document.body.appendChild(main);
-
-      let tabs = document.createElement("div");
-      tabs.id = "tabs";
-      tabs.style.width = "100%";
-      tabs.style.height = "36px";
-      tabs.style.border = "1px dashed #999";
-
-      let editorContainer = document.createElement("div");
-      editorContainer.id = "editorContainer";
-      editorContainer.style.display = "flex";
-
-      let cmnode = document.createElement("div");
-      cmnode.id = "cmnode";
-      cmnode.style.width = "50%";
-
-      let pmnode = document.createElement("div");
-      pmnode.id = "pmnode";
-      pmnode.style.width = "50%";
-      let pmdoc = document.createElement("div");
-      pmdoc.id = "pmdoc";
-      let pmdoch1 = document.createElement("h1");
-      pmdoch1.innerHTML = "Hello ProseMirror";
-      let pmdocp = document.createElement("p");
-      pmdocp.innerHTML = "Here we have an editor";
-      pmdoc.appendChild(pmdoch1);
-      pmdoc.appendChild(pmdocp);
-      // main.appendChild(pmdoc); // intentionally omitted
-
-      main.appendChild(tabs);
-      main.appendChild(editorContainer);
-      editorContainer.appendChild(pmnode);
-      editorContainer.appendChild(cmnode);
-
       document.body.style.fontSize = "1.1rem";
 
-      // javascript setup
+      //
+      // Storage
+      //
 
-      // prosemirror //
+      function buildStorage () {
+        const baseRoot = {root: [{spaces: [{cards: {content: null}}]}]};
+        window.localStorage.workshop = JSON.stringify(baseRoot);
+      }
 
-      let pmview = prosemirrorInit(EditorView$1, EditorState$1,
-                                   pmdoc, pmSetup, pmSchema, pmnode);
-      pmview.dom.style.marginLeft = "1rem";
+      if(!localStorage.workshop) { buildStorage(); }
 
-      // code mirror next //
-
-      let cmview = codemirrorInit(EditorView, EditorState,
-                                  cmStartupDoc, basicSetup, cmnode);
-      // execution //
-
+      //
+      // Execution
+      //
       window.onkeydown = onKeyDown;
       function onKeyDown(evt) {
         if (evt.ctrlKey && evt.key == "Enter") {
@@ -29986,17 +30185,20 @@ console.log(x)
         }
       }
 
-      //
-      //  utility
-      //
-
+      // should be in a card
       function run(task) {
-        let runner = stopify.stopifyLocally(task);
+        let runner = stopify.stopifyLocally(task, {newMethod: "direct"});
+        //console.log(runner)
         runner.g = window;
-        console.log(runner.g);
-        runner.run(result => console.log(result));
+        //runner.run(result => console.log(result));
+        runner.run(result => result);
       }
 
+      //
+      // Interface
+      //
+
+      //should be in a card
       function codemirrorInit (EditorView, EditorState, doc, setup, parent) {
         let view = new EditorView({
           state: EditorState.create({
@@ -30005,38 +30207,102 @@ console.log(x)
           }),
           parent
         });
+
+        // put it in parent's box
+        view.dom.style.height = parent.style.height;
         return view;
       }
 
-      function prosemirrorInit (EditorView, EditorState, docToParse, setup, schema, parent) {
+      //should be in a card
+      function prosemirrorInit (EditorView, EditorState, docJSON, setup, schema, parent) {
+        let doc = schema.nodeFromJSON(JSON.parse(docJSON));
+
         let view = new EditorView(parent, {
           state: EditorState.create({
-            doc: DOMParser.fromSchema(pmSchema).parse(docToParse),
+            doc: doc,
             plugins: setup({schema})
           })
         });
+
+        // put it in parent's box
+        view.dom.style.paddingLeft = "1rem";
+        view.dom.style.paddingRight = "0.5rem";
+        view.dom.style.height = parent.style.height;
+        view.dom.style.overflow = "auto";
         return view;
       }
 
-      //window init for runtime
-      // imports
-      window.cmEditorState = EditorState;
-      window.cmEditorView = EditorView;
-      window.basicSetup = basicSetup;
-      window.cmStartupDoc = cmStartupDoc;
-      window.pmEditorState = EditorState$1;
-      window.pmEditorView = EditorView$1;
-      window.DOMParser = DOMParser;
-      window.pmSetup = pmSetup;
-      window.pmSchema = pmSchema;
-      window.pmStartupDoc = pmStartupDoc;
-      window.Card = Card;
 
-      //local
-      window.cmview = cmview;
-      window.pmview = pmview;
-      window.codemirrorInit = codemirrorInit;
-      window.prosemirrorInit = prosemirrorInit;
+      //
+      // visual interface
+      //
+
+      // TODO
+      // should be in a card
+      // function buildCard ({top, left, width, height}) {
+      // stopify breaks parsing the {} destructuring
+      function buildCard (position) {
+        let top, left, width, height;
+        top = position.top;
+        left = position.left;
+        width = position.width;
+        height = position.height;
+        let card = document.createElement("div");
+        card.classList.add("card");
+        card.style.border = "1px dashed black";
+        card.style.position = "absolute";
+        card.style.top = top + "px";
+        card.style.left = left + "px";
+        card.style.width = width + "px";
+        card.style.height = height + "px";
+        main.appendChild(card);
+
+        let content = document.createElement("div");
+        content.classList.add("content");
+        content.style.width = "100%";
+        content.style.height = "100%";
+
+        card.appendChild(content);
+
+        return card;
+      }
+
+      function buildVisualEnvironment () {
+        let pmcard = buildCard({top: 48, left: 48, width: 600, height: 600});
+        let pmview = prosemirrorInit(EditorView$1, EditorState$1, defaultProse, pmSetup, pmSchema, pmcard.firstChild);
+
+        let cmcard = buildCard({top: 48, left: 660, width: 700, height: 800});
+        let cmview = codemirrorInit(EditorView, EditorState, defaultString, basicSetup, cmcard.firstChild);
+
+        return {pmview, cmview};
+      }
+
+      let views = buildVisualEnvironment();
+      let pmview = views.pmview;
+      let cmview = views.cmview;
+
+      function buildWindowEnvironment () {
+        // window init for runtime
+        // imports
+        window.cmEditorState = EditorState;
+        window.cmEditorView = EditorView;
+        window.basicSetup = basicSetup;
+        window.cmStartupDoc = cmStartupDoc;
+        window.pmEditorState = EditorState$1;
+        window.pmEditorView = EditorView$1;
+        window.DOMParser = DOMParser;
+        window.pmSetup = pmSetup;
+        window.pmSchema = pmSchema;
+        window.defaultString = defaultString;
+        // local
+        window.run = run;
+        window.stopify = stopify;
+        window.onKeyDown = onKeyDown;
+        window.defaultProse = defaultProse;
+        window.pmview = pmview;
+        window.cmview = cmview;
+      }
+      buildWindowEnvironment();
     }
 
 }());
