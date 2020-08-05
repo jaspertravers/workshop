@@ -16323,7 +16323,7 @@
 
     //sources:
 
-    const basicSetup = [
+    const cmSetup = [
       lineNumbers(),
       highlightSpecialChars(),
       history(),
@@ -16348,13 +16348,6 @@
       ]),
       javascript()
     ];
-    const cmStartupDoc =
-`// Hello CodeMirror next
-let x = 5;
-console.log(x)
-// ctrl-enter runs this editor
-// open console to see console.log
-`;
 
     // ::- Persistent data structure representing an ordered mapping from
     // strings to values, with some convenient update methods.
@@ -29942,68 +29935,94 @@ console.log(x)
       marks: schema.spec.marks
     });
 
-    const defaultString =
-`// allows re running
-let main;
-if (main = document.getElementById("main")) {
-  document.body.removeChild(main);
-}
-main = document.createElement("main");
-main.id = "main";
-document.body.appendChild(main);
-document.body.style.fontSize = "1.1rem";
+    const defaultCode = `let cmview, pmview;
+//
+// Storage
+//
 
-function buildStorage () {
-  const baseRoot = {spaces: [{cards: {content: null}}]}
-  window.localStorage.workshop = JSON.stringify(baseRoot)
+function buildStorage() {
+  const baseStorage = {root: [{spaces: [{cards: {content: null}}]}]}
+  const storage = {boot: {cards: [
+    {
+      top: 48, left: 48, width: 600, height: 600,
+      type: "prosemirror",
+      content: defaultProse
+    },
+    {
+      top: 48, left: 660, width: 700, height: 800,
+      type: "codemirror",
+      content: defaultCode
+    }
+  ]}}
+  window.localStorage.workshop = JSON.stringify(storage)
 }
 
 if(!localStorage.workshop) { buildStorage() }
 
-// TODO interfacing functions
-
 //
-// execution
+// interfacing functions
 //
 
-window.onkeydown = onKeyDown;
-function onKeyDown(evt) {
-  if (evt.ctrlKey && evt.key == "Enter") {
-    run(cmview.state.doc.toString());
-  }
-}
-
-// should be in a card
-function run(task) {
-  let runner = stopify.stopifyLocally(task, {newMethod: "direct"});
-  //console.log(runner)
-  runner.g = window;
-  //runner.run(result => console.log(result));
-  runner.run(result => result);
-}
-
-//should be in a card
-function codemirrorInit (EditorView, EditorState, doc, setup, parent) {
-  let view = new EditorView({
-    state: EditorState.create({
-      doc,
-      extensions: [setup]
-    }),
-    parent
+function viewSpace(space) {
+  createOrClearMain();
+  let context = getStorage();
+  context[space].cards.forEach (card => {
+    viewCard(card);
   })
-
-  // put it in parent's box
-  view.dom.style.height = parent.style.height;
-  return view;
 }
+// TODO onchange?
+// on ctrl-s right now, but limited to two editors pmview and cmview
+function saveSpace(space) {
+  let context = getStorage();
+  context[space].cards.forEach (card => {
+    if (card.type == "prosemirror") {
+      card.content = JSON.stringify(pmview.state.doc.toJSON());
+    }
+    if (card.type == "codemirror") {
+      card.content = cmview.state.doc.toString();
+    }
+  })
+  saveStorage(context);
+}
+function viewCard(cardSpec) {
+  let card = document.createElement("div");
+  card.classList.add("card");
+  card.style.border = "1px dashed black"
+  card.style.position = "absolute";
+  card.style.top = cardSpec.top + "px";
+  card.style.left = cardSpec.left + "px";
+  card.style.width = cardSpec.width + "px";
+  card.style.height = cardSpec.height + "px";
+  main.appendChild(card);
 
-function prosemirrorInit (EditorView, EditorState, docJSON, setup, schema, parent) {
-  let doc = schema.nodeFromJSON(JSON.parse(docJSON));
+  let content = document.createElement("div");
+  content.classList.add("content");
+  content.style.width = "100%";
+  content.style.height = "100%";
 
-  let view = new EditorView(parent, {
-    state: EditorState.create({
+  card.appendChild(content);
+
+  if (cardSpec.type == "prosemirror") {
+    // TODO cant set here
+    pmview = viewProseMirror(cardSpec.content, content)
+  }
+  if (cardSpec.type == "codemirror") {
+    // TODO cant set here
+    cmview = viewCodeMirror(cardSpec.content, content)
+  }
+
+  return card;
+}
+// TODO onchange?
+function saveCard() {}
+
+function viewProseMirror(docObj, parent) {
+  let doc = pmSchema.nodeFromJSON(JSON.parse(docObj));
+
+  let view = new pmEditorView(parent, {
+    state: pmEditorState.create({
       doc: doc,
-      plugins: setup({schema})
+      plugins: pmSetup({schema: pmSchema})
     })
   })
 
@@ -30014,56 +30033,65 @@ function prosemirrorInit (EditorView, EditorState, docJSON, setup, schema, paren
   view.dom.style.overflow = "auto";
   return view;
 }
+function viewCodeMirror(doc, parent) {
+  let view = new cmEditorView({
+    state: cmEditorState.create({
+      doc,
+      extensions: [cmSetup]
+    }),
+    parent
+  })
+
+  // put it in parent's box
+  view.dom.style.height = parent.style.height;
+  return view;
+}
+
+function getStorage() {
+  return JSON.parse(window.localStorage.workshop);
+}
+function saveStorage(context) {
+  window.localStorage.workshop = JSON.stringify(context);
+}
+
+function createOrClearMain() {
+  let main;
+  if (main = document.getElementById("main")) {
+    document.body.removeChild(main);
+  }
+  main = document.createElement("main");
+  main.id = "main";
+  document.body.appendChild(main);
+  document.body.style.fontSize = "1.1rem";
+}
+
+//  end interfacing functions
+
+viewSpace("boot");
 
 //
-// visual interface
+// Execution
 //
+// TODO hacked together right now
+window.onkeydown = onKeyDown;
+function onKeyDown(evt) {
+  if (evt.ctrlKey && evt.key == "Enter") {
+    run(cmview.state.doc.toString());
+  }
+  if (evt.ctrlKey && evt.key == "s") {
+    evt.preventDefault();
+    saveSpace("boot");
+  }
+}
 
-// TODO
 // should be in a card
-// function buildCard ({top, left, width, height}) {
-// stopify breaks parsing the {} destructuring
-function buildCard (position) {
-  let top, left, width, height;
-  top = position.top;
-  left = position.left;
-  width = position.width;
-  height = position.height;
-  let card = document.createElement("div");
-  card.classList.add("card");
-  card.style.border = "1px dashed black"
-  card.style.position = "absolute";
-  card.style.top = top + "px";
-  card.style.left = left + "px";
-  card.style.width = width + "px";
-  card.style.height = height + "px";
-  main.appendChild(card);
-
-  let content = document.createElement("div");
-  content.classList.add("content");
-  content.style.width = "100%";
-  content.style.height = "100%";
-
-  card.appendChild(content);
-
-  return card;
-}
-
-function buildVisualEnvironment () {
-  let pmcard = buildCard({top: 48, left: 48, width: 600, height: 600})
-  let pmview = prosemirrorInit(pmEditorView, pmEditorState,
-                               defaultProse, pmSetup, pmSchema, pmcard.firstChild)
-
-  let cmcard = buildCard({top: 48, left: 660, width: 700, height: 800})
-  let cmview = codemirrorInit(cmEditorView, cmEditorState,
-                              defaultString, basicSetup, cmcard.firstChild)
-
-  return {pmview, cmview};
-}
-let views = buildVisualEnvironment();
-let pmview = views.pmview;
-let cmview = views.cmview;
-`;
+function run(task) {
+  let runner = stopify.stopifyLocally(task, {newMethod: "direct"});
+  //console.log(runner)
+  runner.g = window;
+  //runner.run(result => console.log(result));
+  runner.run(result => result);
+}`;
 
     const defaultProse = `{
   "type": "doc",
@@ -30155,33 +30183,152 @@ let cmview = views.cmview;
       //
       //  Base
       //
-      let main;
-      if (main = document.getElementById("main")) {
-        document.body.removeChild(main);
-      }
-      main = document.createElement("main");
-      main.id = "main";
-      document.body.appendChild(main);
-      document.body.style.fontSize = "1.1rem";
-
+      let cmview, pmview;
       //
       // Storage
       //
 
-      function buildStorage () {
-        const baseRoot = {root: [{spaces: [{cards: {content: null}}]}]};
-        window.localStorage.workshop = JSON.stringify(baseRoot);
+      function buildStorage() {
+        const storage = {boot: {cards: [
+          {
+            top: 48, left: 48, width: 600, height: 600,
+            type: "prosemirror",
+            content: defaultProse
+          },
+          {
+            top: 48, left: 660, width: 700, height: 800,
+            type: "codemirror",
+            content: defaultCode
+          }
+        ]}};
+        window.localStorage.workshop = JSON.stringify(storage);
       }
 
       if(!localStorage.workshop) { buildStorage(); }
+      //buildStorage();
+
+      //
+      // interfacing functions
+      //
+
+      function viewSpace(space) {
+        createOrClearMain();
+        let context = getStorage();
+        context[space].cards.forEach (card => {
+          viewCard(card);
+        });
+      }
+      // TODO onchange?
+      // on ctrl-s right now, but limited to two editors pmview and cmview
+      function saveSpace(space) {
+        let context = getStorage();
+        context[space].cards.forEach (card => {
+          if (card.type == "prosemirror") {
+            card.content = JSON.stringify(pmview.state.doc.toJSON());
+          }
+          if (card.type == "codemirror") {
+            card.content = cmview.state.doc.toString();
+          }
+        });
+        saveStorage(context);
+      }
+      function viewCard(cardSpec) {
+        let card = document.createElement("div");
+        card.classList.add("card");
+        card.style.border = "1px dashed black";
+        card.style.position = "absolute";
+        card.style.top = cardSpec.top + "px";
+        card.style.left = cardSpec.left + "px";
+        card.style.width = cardSpec.width + "px";
+        card.style.height = cardSpec.height + "px";
+        main.appendChild(card);
+
+        let content = document.createElement("div");
+        content.classList.add("content");
+        content.style.width = "100%";
+        content.style.height = "100%";
+
+        card.appendChild(content);
+
+        if (cardSpec.type == "prosemirror") {
+          // TODO cant set here
+          pmview = viewProseMirror(cardSpec.content, content);
+        }
+        if (cardSpec.type == "codemirror") {
+          // TODO cant set here
+          cmview = viewCodeMirror(cardSpec.content, content);
+        }
+
+        return card;
+      }
+      // TODO onchange?
+      function saveCard() {}
+
+      function viewProseMirror(docObj, parent) {
+        let doc = pmSchema.nodeFromJSON(JSON.parse(docObj));
+
+        let view = new EditorView$1(parent, {
+          state: EditorState$1.create({
+            doc: doc,
+            plugins: pmSetup({schema: pmSchema})
+          })
+        });
+
+        // put it in parent's box
+        view.dom.style.paddingLeft = "1rem";
+        view.dom.style.paddingRight = "0.5rem";
+        view.dom.style.height = parent.style.height;
+        view.dom.style.overflow = "auto";
+        return view;
+      }
+      function viewCodeMirror(doc, parent) {
+        let view = new EditorView({
+          state: EditorState.create({
+            doc,
+            extensions: [cmSetup]
+          }),
+          parent
+        });
+
+        // put it in parent's box
+        view.dom.style.height = parent.style.height;
+        return view;
+      }
+
+      function getStorage() {
+        return JSON.parse(window.localStorage.workshop);
+      }
+      function saveStorage(context) {
+        window.localStorage.workshop = JSON.stringify(context);
+      }
+
+      function createOrClearMain() {
+        let main;
+        if (main = document.getElementById("main")) {
+          document.body.removeChild(main);
+        }
+        main = document.createElement("main");
+        main.id = "main";
+        document.body.appendChild(main);
+        document.body.style.fontSize = "1.1rem";
+      }
+
+      //  end interfacing functions
+
+      viewSpace("boot");
 
       //
       // Execution
       //
+      // TODO hacked together right now
       window.onkeydown = onKeyDown;
       function onKeyDown(evt) {
         if (evt.ctrlKey && evt.key == "Enter") {
           run(cmview.state.doc.toString());
+        }
+        if (evt.ctrlKey && evt.key == "s") {
+          evt.preventDefault();
+          saveSpace("boot");
         }
       }
 
@@ -30193,114 +30340,35 @@ let cmview = views.cmview;
         //runner.run(result => console.log(result));
         runner.run(result => result);
       }
-
-      //
-      // Interface
-      //
-
-      //should be in a card
-      function codemirrorInit (EditorView, EditorState, doc, setup, parent) {
-        let view = new EditorView({
-          state: EditorState.create({
-            doc,
-            extensions: [setup]
-          }),
-          parent
-        });
-
-        // put it in parent's box
-        view.dom.style.height = parent.style.height;
-        return view;
-      }
-
-      //should be in a card
-      function prosemirrorInit (EditorView, EditorState, docJSON, setup, schema, parent) {
-        let doc = schema.nodeFromJSON(JSON.parse(docJSON));
-
-        let view = new EditorView(parent, {
-          state: EditorState.create({
-            doc: doc,
-            plugins: setup({schema})
-          })
-        });
-
-        // put it in parent's box
-        view.dom.style.paddingLeft = "1rem";
-        view.dom.style.paddingRight = "0.5rem";
-        view.dom.style.height = parent.style.height;
-        view.dom.style.overflow = "auto";
-        return view;
-      }
-
-
-      //
-      // visual interface
-      //
-
-      // TODO
-      // should be in a card
-      // function buildCard ({top, left, width, height}) {
-      // stopify breaks parsing the {} destructuring
-      function buildCard (position) {
-        let top, left, width, height;
-        top = position.top;
-        left = position.left;
-        width = position.width;
-        height = position.height;
-        let card = document.createElement("div");
-        card.classList.add("card");
-        card.style.border = "1px dashed black";
-        card.style.position = "absolute";
-        card.style.top = top + "px";
-        card.style.left = left + "px";
-        card.style.width = width + "px";
-        card.style.height = height + "px";
-        main.appendChild(card);
-
-        let content = document.createElement("div");
-        content.classList.add("content");
-        content.style.width = "100%";
-        content.style.height = "100%";
-
-        card.appendChild(content);
-
-        return card;
-      }
-
-      function buildVisualEnvironment () {
-        let pmcard = buildCard({top: 48, left: 48, width: 600, height: 600});
-        let pmview = prosemirrorInit(EditorView$1, EditorState$1, defaultProse, pmSetup, pmSchema, pmcard.firstChild);
-
-        let cmcard = buildCard({top: 48, left: 660, width: 700, height: 800});
-        let cmview = codemirrorInit(EditorView, EditorState, defaultString, basicSetup, cmcard.firstChild);
-
-        return {pmview, cmview};
-      }
-
-      let views = buildVisualEnvironment();
-      let pmview = views.pmview;
-      let cmview = views.cmview;
-
-      function buildWindowEnvironment () {
+      function buildWindowEnvironment() {
         // window init for runtime
         // imports
         window.cmEditorState = EditorState;
         window.cmEditorView = EditorView;
-        window.basicSetup = basicSetup;
-        window.cmStartupDoc = cmStartupDoc;
+        window.cmSetup = cmSetup;
         window.pmEditorState = EditorState$1;
         window.pmEditorView = EditorView$1;
         window.DOMParser = DOMParser;
         window.pmSetup = pmSetup;
         window.pmSchema = pmSchema;
-        window.defaultString = defaultString;
+        window.defaultCode = defaultCode;
+        window.defaultProse = defaultProse;
         // local
         window.run = run;
         window.stopify = stopify;
         window.onKeyDown = onKeyDown;
-        window.defaultProse = defaultProse;
         window.pmview = pmview;
         window.cmview = cmview;
+        window.buildStorage = buildStorage;
+        window.viewSpace = viewSpace;
+        window.saveSpace = saveSpace;
+        window.viewCard = viewCard;
+        window.saveCard = saveCard;
+        window.viewProseMirror = viewProseMirror;
+        window.viewCodeMirror = viewCodeMirror;
+        window.getStorage = getStorage;
+        window.saveStorage = saveStorage;
+        window.createOrClearMain = createOrClearMain;
       }
       buildWindowEnvironment();
     }

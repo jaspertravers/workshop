@@ -24,7 +24,7 @@ import {lintKeymap} from "@codemirror/next/lint"
 
 import {javascript} from "@codemirror/next/lang-javascript"
 
-export const basicSetup = [
+export const cmSetup = [
   lineNumbers(),
   highlightSpecialChars(),
   history(),
@@ -52,10 +52,3 @@ export const basicSetup = [
 
 export {EditorView} from "@codemirror/next/view"
 export {EditorState} from "@codemirror/next/state"
-export const cmStartupDoc =
-`// Hello CodeMirror next
-let x = 5;
-console.log(x)
-// ctrl-enter runs this editor
-// open console to see console.log
-`
