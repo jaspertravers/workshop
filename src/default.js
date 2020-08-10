@@ -1,4 +1,4 @@
-export const defaultCode = `let cmview, pmview;
+export const defaultCode = `let cards = [];
 //
 // Storage
 //
@@ -21,6 +21,7 @@ function buildStorage() {
 }
 
 if(!localStorage.workshop) { buildStorage() }
+buildStorage();
 
 //
 // interfacing functions
@@ -28,23 +29,32 @@ if(!localStorage.workshop) { buildStorage() }
 
 function viewSpace(space) {
   createOrClearMain();
+  cards = [];
   let context = getStorage();
   context[space].cards.forEach (card => {
     viewCard(card);
   })
 }
-// TODO onchange?
-// on ctrl-s right now, but limited to two editors pmview and cmview
+
 function saveSpace(space) {
   let context = getStorage();
-  context[space].cards.forEach (card => {
+  context[space].cards = []; // "reset"
+
+  cards.forEach(card => {
     if (card.type == "prosemirror") {
-      card.content = JSON.stringify(pmview.state.doc.toJSON());
+      card.content = JSON.stringify(card.view.state.doc.toJSON());
     }
     if (card.type == "codemirror") {
-      card.content = cmview.state.doc.toString();
+      card.content = card.view.state.doc.toString();
     }
-  })
+
+    let view = card.view;
+    delete card.view; //remove circle
+    let storeCard = Object.assign({}, card); //shallow copy
+    context[space].cards.push(storeCard);
+    card.view = view;
+  });
+
   saveStorage(context);
 }
 function viewCard(cardSpec) {
@@ -65,19 +75,26 @@ function viewCard(cardSpec) {
 
   card.appendChild(content);
 
+  let view;
   if (cardSpec.type == "prosemirror") {
-    // TODO cant set here
-    pmview = viewProseMirror(cardSpec.content, content)
+    view = viewProseMirror(cardSpec.content, content);
   }
   if (cardSpec.type == "codemirror") {
-    // TODO cant set here
-    cmview = viewCodeMirror(cardSpec.content, content)
+    view = viewCodeMirror(cardSpec.content, content);
   }
 
-  return card;
+  buildReference(cardSpec, view);
+
+  return card; //don't use this atm
 }
 // TODO onchange?
 function saveCard() {}
+function buildReference(cardSpec, view) {
+  //cards.push({...cardSpec, view}); //correct
+  let card = Object.assign({}, cardSpec);
+  card.view = view;
+  cards.push(card);
+}
 
 function viewProseMirror(docObj, parent) {
   let doc = pmSchema.nodeFromJSON(JSON.parse(docObj));
@@ -135,11 +152,13 @@ viewSpace("boot");
 //
 // Execution
 //
-// TODO hacked together right now
+// locked into "boot" only right now
 window.onkeydown = onKeyDown;
 function onKeyDown(evt) {
   if (evt.ctrlKey && evt.key == "Enter") {
-    run(cmview.state.doc.toString());
+    let task = buildTask(cards);
+    run(task);
+    //run(cmview.state.doc.toString());
   }
   if (evt.ctrlKey && evt.key == "s") {
     evt.preventDefault();
@@ -147,14 +166,19 @@ function onKeyDown(evt) {
   }
 }
 
+function buildTask(cards) {
+  return cards.filter(card => card.type == "codemirror")
+    .map(card => card.view.state.doc.toString())
+    .join(" ");
+}
+
 // should be in a card
 function run(task) {
   let runner = stopify.stopifyLocally(task, {newMethod: "direct"});
-  //console.log(runner)
   runner.g = window;
-  //runner.run(result => console.log(result));
   runner.run(result => result);
-}`
+}
+`
 
 export const defaultProse = `{
   "type": "doc",
