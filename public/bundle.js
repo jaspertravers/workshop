@@ -30198,6 +30198,8 @@ function run(task) {
   ]
 }`;
 
+    const exdefault = {"boot":{"cards":[{"top":48,"left":48,"width":600,"height":600,"type":"prosemirror","content":"{\"type\":\"doc\",\"content\":[{\"type\":\"heading\",\"attrs\":{\"level\":1},\"content\":[{\"type\":\"text\",\"text\":\"Workshop\"}]},{\"type\":\"paragraph\",\"content\":[{\"type\":\"text\",\"text\":\"This is a prototype digital workshop. It is intended to be an environment in which full interface and computational control are explicitly provided to the user. To that end, this workshop is built in the browser on top of vanilla technologies. It’s source is available here in the \"},{\"type\":\"text\",\"marks\":[{\"type\":\"em\"}],\"text\":\"Boot\"},{\"type\":\"text\",\"text\":\" tab alongside this editor on first page load. The environment also initially provides three “primitives” on top of the browser: a rich content editor (with live markdown and common hotkeys), a code editor, and an execution environment that improves upon the single-threaded browser VM. \"}]},{\"type\":\"paragraph\",\"content\":[{\"type\":\"text\",\"text\":\"The Workshop is a prototyping interface in which any and all functionality can be directly tied to its source, as well as redefined and re-evaluated at any point. There are a few underlying constructs which are crucial to develop this prototyping meta-environment.\"}]},{\"type\":\"ordered_list\",\"attrs\":{\"order\":1},\"content\":[{\"type\":\"list_item\",\"content\":[{\"type\":\"paragraph\",\"content\":[{\"type\":\"text\",\"text\":\"In the spirit of HyperCard and the Wiki, all content is stored in a single container type \"},{\"type\":\"text\",\"marks\":[{\"type\":\"em\"}],\"text\":\"Card\"},{\"type\":\"text\",\"text\":\" to which all functionality and view are attached. This is a prosemirror card, to the right are a collection of codemirror cards. The collection of card interfacing functions are defined here in \"},{\"type\":\"text\",\"marks\":[{\"type\":\"em\"}],\"text\":\"Boot.\"}]}]},{\"type\":\"list_item\",\"content\":[{\"type\":\"paragraph\",\"content\":[{\"type\":\"text\",\"text\":\"This space defines the interface to the Workshop explicitly. Any and all other spaces may define themselves within the the view itself or be referenced by outside “source” spaces.\"}]}]}]},{\"type\":\"horizontal_rule\"},{\"type\":\"paragraph\",\"content\":[{\"type\":\"text\",\"text\":\"This is just the most basic setup possible, in the days to come I will expand upon the initial content within the default setup and keep it all present and editable directly from the source. The Workshop is now in a state where all future development can occur within the system itself. \"}]},{\"type\":\"paragraph\",\"content\":[{\"type\":\"text\",\"text\":\"— Jasper\"}]}]}"},{"top":48,"left":660,"width":700,"height":800,"type":"codemirror","content":"let newCardSpec = {\n  top: 48, left: 48, width: 700, height: 600,\n  type: \"codemirror\",\n  content: \"// Workshop //\"\n}\n\nlet context = getStorage();\ncontext[\"Workshop\"].cards.push(newCardSpec);\n\nsaveStorage(context);\n\n\n\n\n\n\n\n\n\n\n\n"},{"top":660,"left":48,"width":600,"height":400,"type":"codemirror","content":"// two more primitives are in the works: \n// 1. Console/Sandbox\n// 2. SVG/Canvas\n\n\n\n"},{"top":12,"left":48,"width":1824,"height":24,"type":"tabs","content":"I guess some tabs"},{"top":48,"left":1372,"width":500,"height":600,"type":"prosemirror","content":"{\"type\":\"doc\",\"content\":[{\"type\":\"heading\",\"attrs\":{\"level\":1},\"content\":[{\"type\":\"text\",\"text\":\"Patterns\"}]},{\"type\":\"heading\",\"attrs\":{\"level\":3},\"content\":[{\"type\":\"text\",\"text\":\"Tabs\"}]},{\"type\":\"paragraph\",\"content\":[{\"type\":\"text\",\"text\":\"Within the bounding box of a card?\"}]},{\"type\":\"paragraph\",\"content\":[{\"type\":\"text\",\"text\":\"How and what card listeners should exist? Are tabs simply low-content cards? How to attach listener? A separate constructor separating out the *mirror cases vs buttons, canvas or console?\"}]},{\"type\":\"paragraph\",\"content\":[{\"type\":\"text\",\"text\":\"How do we want to do wm decorators and names?\"}]},{\"type\":\"paragraph\"},{\"type\":\"paragraph\"},{\"type\":\"paragraph\",\"content\":[{\"type\":\"text\",\"text\":\"All the more reason to implement saveCard\"}]},{\"type\":\"paragraph\"},{\"type\":\"paragraph\"},{\"type\":\"paragraph\"},{\"type\":\"paragraph\"},{\"type\":\"horizontal_rule\"},{\"type\":\"paragraph\",\"content\":[{\"type\":\"text\",\"text\":\"i3 drawers? vs org drawers?\"}]},{\"type\":\"paragraph\",\"content\":[{\"type\":\"text\",\"text\":\"c2 object browser for window attachments from build?\"}]}]}"},{"top":660,"left":1372,"width":500,"height":300,"type":"prosemirror","content":"{\"type\":\"doc\",\"content\":[{\"type\":\"heading\",\"attrs\":{\"level\":1},\"content\":[{\"type\":\"text\",\"text\":\"Cards\"}]},{\"type\":\"paragraph\",\"content\":[{\"type\":\"text\",\"text\":\"Editing \"},{\"type\":\"text\",\"marks\":[{\"type\":\"em\"}],\"text\":\"existing\"},{\"type\":\"text\",\"text\":\" cards is unwieldy. Need to improve on the current unnamed array access.\"}]},{\"type\":\"paragraph\",\"content\":[{\"type\":\"text\",\"text\":\"Expand the card types capabilities.\"}]},{\"type\":\"paragraph\"}]}"},{"top":12,"left":148,"width":100,"height":24,"type":"button","content":"Workshop"},{"top":12,"left":48,"width":100,"height":24,"type":"button","content":"boot"}]},"Workshop":{"cards":[{"top":12,"left":48,"width":1824,"height":24,"type":"tabs","content":"I guess some tabs"},{"top":12,"left":148,"width":100,"height":24,"type":"button","content":"Workshop"},{"top":12,"left":48,"width":100,"height":24,"type":"button","content":"boot"},{"top":48,"left":48,"width":700,"height":600,"type":"codemirror","content":"// Workshop //\n\n// lets try an export\n\nconsole.log(JSON.stringify(getStorage()))\n"}]}};
+
     // stopify is included via <script> in /public
     //  default
 
@@ -30208,11 +30210,13 @@ function run(task) {
       //  Base
       //
       let cards = [];
+      let space = "boot";
       //
       // Storage
       //
 
       function buildStorage() {
+        /*
         const storage = {boot: {cards: [
           {
             top: 48, left: 48, width: 600, height: 600,
@@ -30224,23 +30228,25 @@ function run(task) {
             type: "codemirror",
             content: defaultCode
           }
-        ]}};
-        window.localStorage.workshop = JSON.stringify(storage);
+        ]}}
+        */
+        const storage = exdefault;
+        saveStorage(storage);
       }
-
-      if(!localStorage.workshop) { buildStorage(); }
-      buildStorage();
 
       //
       // interfacing functions
       //
 
+      // viewSpace (space)
+      // space from storage, stores current deck in cards variable
       function viewSpace(space) {
         createOrClearMain();
         cards = [];
         let context = getStorage();
         context[space].cards.forEach (card => {
-          viewCard(card);
+          cards.push(viewCard(card));
+          //viewCard(card);
         });
       }
 
@@ -30249,18 +30255,15 @@ function run(task) {
         context[space].cards = []; // "reset"
 
         cards.forEach(card => {
-          if (card.type == "prosemirror") {
-            card.content = JSON.stringify(card.view.state.doc.toJSON());
+          if (card.cardSpec.type == "prosemirror") {
+            card.cardSpec.content = JSON.stringify(card.view.state.doc.toJSON());
           }
-          if (card.type == "codemirror") {
-            card.content = card.view.state.doc.toString();
+          if (card.cardSpec.type == "codemirror") {
+            card.cardSpec.content = card.view.state.doc.toString();
           }
 
-          let view = card.view;
-          delete card.view; //remove circle
-          let storeCard = Object.assign({}, card); //shallow copy
-          context[space].cards.push(storeCard);
-          card.view = view;
+          //let storeCard = Object.assign({}, card.cardSpec); //shallow copy
+          context[space].cards.push(card.cardSpec);
         });
 
         saveStorage(context);
@@ -30290,19 +30293,26 @@ function run(task) {
         if (cardSpec.type == "codemirror") {
           view = viewCodeMirror(cardSpec.content, content);
         }
+        if (cardSpec.type == "button") {
+          content.style.display = "flex";
+          content.style.justifyContent = "center";
+          content.style.alignItems = "center";
+          content.style.background = "#e5e5e5";
 
-        buildReference(cardSpec, view);
+          let label = document.createTextNode(cardSpec.content);
+          content.appendChild(label);
 
-        return card; //don't use this atm
+          content.onclick = () => {
+            saveSpace(space);
+            viewSpace(cardSpec.content);
+            space = cardSpec.content; //update space global pointer
+          };
+        }
+
+        return {card, cardSpec, view}; //don't use this atm
       }
       // TODO onchange?
       function saveCard() {}
-      function buildReference(cardSpec, view) {
-        //cards.push({...cardSpec, view}); //correct
-        let card = Object.assign({}, cardSpec);
-        card.view = view;
-        cards.push(card);
-      }
 
       function viewProseMirror(docObj, parent) {
         let doc = pmSchema.nodeFromJSON(JSON.parse(docObj));
@@ -30353,10 +30363,6 @@ function run(task) {
         document.body.style.fontSize = "1.1rem";
       }
 
-      //  end interfacing functions
-
-      viewSpace("boot");
-
       //
       // Execution
       //
@@ -30364,18 +30370,19 @@ function run(task) {
       window.onkeydown = onKeyDown;
       function onKeyDown(evt) {
         if (evt.ctrlKey && evt.key == "Enter") {
+          saveSpace(space);
           let task = buildTask(cards);
           run(task);
           //run(cmview.state.doc.toString());
         }
         if (evt.ctrlKey && evt.key == "s") {
           evt.preventDefault();
-          saveSpace("boot");
+          saveSpace(space);
         }
       }
 
       function buildTask(cards) {
-        return cards.filter(card => card.type == "codemirror")
+        return cards.filter(card => card.cardSpec.type == "codemirror")
           .map(card => card.view.state.doc.toString())
           .join(" ");
       }
@@ -30384,7 +30391,7 @@ function run(task) {
       function run(task) {
         let runner = stopify.stopifyLocally(task, {newMethod: "direct"});
         runner.g = window;
-        runner.run(result => result);
+        runner.run(result => result); //ignores stopify value
       }
       function buildWindowEnvironment() {
         // window init for runtime
@@ -30404,6 +30411,7 @@ function run(task) {
         window.stopify = stopify;
         window.onKeyDown = onKeyDown;
         window.cards = cards;
+        window.space = space;
         window.buildStorage = buildStorage;
         window.viewSpace = viewSpace;
         window.saveSpace = saveSpace;
@@ -30415,9 +30423,16 @@ function run(task) {
         window.saveStorage = saveStorage;
         window.createOrClearMain = createOrClearMain;
         window.buildTask = buildTask;
-        window.buildReference = buildReference;
       }
-      buildWindowEnvironment();
+
+      function mainrun() {
+        if(!localStorage.workshop) { buildStorage(); }
+        //buildStorage();
+
+        viewSpace("boot");
+        buildWindowEnvironment();
+      }
+      mainrun();
     }
 
 }());

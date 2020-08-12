@@ -10,6 +10,7 @@ import {EditorState as pmEditorState,
 // console
 // card
 import {defaultCode, defaultProse} from './default.js'
+import {exdefault} from './exdefault.js'
 //  default
 
 // setup
@@ -19,12 +20,14 @@ function onLoad() {
   //  Base
   //
   let cards = [];
+  let space = "boot";
   //
   // Storage
   //
 
   function buildStorage() {
-    const baseStorage = {root: [{spaces: [{cards: {content: null}}]}]}
+    const baseStorage = {root: [{spaces: [{cards: {content: null}}]}]} // type
+    /*
     const storage = {boot: {cards: [
       {
         top: 48, left: 48, width: 600, height: 600,
@@ -37,22 +40,24 @@ function onLoad() {
         content: defaultCode
       }
     ]}}
-    window.localStorage.workshop = JSON.stringify(storage)
+    */
+    const storage = exdefault;
+    saveStorage(storage);
   }
-
-  if(!localStorage.workshop) { buildStorage() }
-  buildStorage();
 
   //
   // interfacing functions
   //
 
+  // viewSpace (space)
+  // space from storage, stores current deck in cards variable
   function viewSpace(space) {
     createOrClearMain();
     cards = [];
     let context = getStorage();
     context[space].cards.forEach (card => {
-      viewCard(card);
+      cards.push(viewCard(card));
+      //viewCard(card);
     })
   }
 
@@ -61,18 +66,15 @@ function onLoad() {
     context[space].cards = []; // "reset"
 
     cards.forEach(card => {
-      if (card.type == "prosemirror") {
-        card.content = JSON.stringify(card.view.state.doc.toJSON());
+      if (card.cardSpec.type == "prosemirror") {
+        card.cardSpec.content = JSON.stringify(card.view.state.doc.toJSON());
       }
-      if (card.type == "codemirror") {
-        card.content = card.view.state.doc.toString();
+      if (card.cardSpec.type == "codemirror") {
+        card.cardSpec.content = card.view.state.doc.toString();
       }
 
-      let view = card.view;
-      delete card.view; //remove circle
-      let storeCard = Object.assign({}, card); //shallow copy
-      context[space].cards.push(storeCard);
-      card.view = view;
+      //let storeCard = Object.assign({}, card.cardSpec); //shallow copy
+      context[space].cards.push(card.cardSpec);
     });
 
     saveStorage(context);
@@ -102,19 +104,26 @@ function onLoad() {
     if (cardSpec.type == "codemirror") {
       view = viewCodeMirror(cardSpec.content, content);
     }
+    if (cardSpec.type == "button") {
+      content.style.display = "flex";
+      content.style.justifyContent = "center";
+      content.style.alignItems = "center";
+      content.style.background = "#e5e5e5";
 
-    buildReference(cardSpec, view);
+      let label = document.createTextNode(cardSpec.content)
+      content.appendChild(label);
 
-    return card; //don't use this atm
+      content.onclick = () => {
+        saveSpace(space);
+        viewSpace(cardSpec.content);
+        space = cardSpec.content; //update space global pointer
+      }
+    }
+
+    return {card, cardSpec, view}; //don't use this atm
   }
   // TODO onchange?
   function saveCard() {}
-  function buildReference(cardSpec, view) {
-    //cards.push({...cardSpec, view}); //correct
-    let card = Object.assign({}, cardSpec);
-    card.view = view;
-    cards.push(card);
-  }
 
   function viewProseMirror(docObj, parent) {
     let doc = pmSchema.nodeFromJSON(JSON.parse(docObj));
@@ -165,10 +174,6 @@ function onLoad() {
     document.body.style.fontSize = "1.1rem";
   }
 
-  //  end interfacing functions
-
-  viewSpace("boot");
-
   //
   // Execution
   //
@@ -176,18 +181,19 @@ function onLoad() {
   window.onkeydown = onKeyDown;
   function onKeyDown(evt) {
     if (evt.ctrlKey && evt.key == "Enter") {
+      saveSpace(space);
       let task = buildTask(cards);
       run(task);
       //run(cmview.state.doc.toString());
     }
     if (evt.ctrlKey && evt.key == "s") {
       evt.preventDefault();
-      saveSpace("boot");
+      saveSpace(space);
     }
   }
 
   function buildTask(cards) {
-    return cards.filter(card => card.type == "codemirror")
+    return cards.filter(card => card.cardSpec.type == "codemirror")
       .map(card => card.view.state.doc.toString())
       .join(" ");
   }
@@ -196,7 +202,7 @@ function onLoad() {
   function run(task) {
     let runner = stopify.stopifyLocally(task, {newMethod: "direct"});
     runner.g = window;
-    runner.run(result => result);
+    runner.run(result => result); //ignores stopify value
   }
   function buildWindowEnvironment() {
     // window init for runtime
@@ -216,6 +222,7 @@ function onLoad() {
     window.stopify = stopify;
     window.onKeyDown = onKeyDown;
     window.cards = cards;
+    window.space = space;
     window.buildStorage = buildStorage;
     window.viewSpace = viewSpace;
     window.saveSpace = saveSpace;
@@ -227,7 +234,14 @@ function onLoad() {
     window.saveStorage = saveStorage;
     window.createOrClearMain = createOrClearMain;
     window.buildTask = buildTask;
-    window.buildReference = buildReference;
   }
-  buildWindowEnvironment();
+
+  function mainrun() {
+    if(!localStorage.workshop) { buildStorage() }
+    //buildStorage();
+
+    viewSpace("boot");
+    buildWindowEnvironment();
+  }
+  mainrun();
 }
