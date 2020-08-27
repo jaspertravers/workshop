@@ -1,5 +1,5 @@
 // https://github.com/marijnh/Eloquent-JavaScript/blob/master/html/js/sandbox.js
-(function() {
+export const sbiife = (function() {
   "use strict"
 
   function parseStack(stack) {
@@ -22,7 +22,7 @@
       return new Promise(done => {
         let frame = document.createElement("iframe")
         frame.addEventListener("load", loaded)
-        frame.src = "empty.html"
+        frame.src = "<!doctype html><meta charset=utf8>"
         if (options.place) {
           options.place(frame)
         } else {
@@ -640,4 +640,4 @@
     }
     return proceed(0, null)
   }
-})()
+})

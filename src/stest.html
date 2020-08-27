@@ -1,0 +1,26 @@
+<html>
+  <body>
+    <script src="https://github.com/plasma-umass/Stopify/releases/download/0.7.2/stopify-full.bundle.js"></script>
+    <script>
+    const program = `
+class myClass {
+  constructor (a, b) {
+    this.a = a;
+    this.b = b;
+  }
+  display () {
+    console.log(this.a, this.b);
+  }
+}
+
+const myc = new myClass(2,3);
+myc.display()
+`;
+
+    const asyncRun = stopify.stopifyLocally(program);
+      asyncRun.g = { document, window, asyncRun, console };
+
+      asyncRun.run((result) => {console.log(result)});
+    </script>
+  </body>
+</html>
