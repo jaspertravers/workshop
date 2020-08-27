@@ -29935,505 +29935,348 @@
       marks: schema.spec.marks
     });
 
-    const defaultCode = `let cards = [];
-//
-// Storage
-//
-
-function buildStorage() {
-  const baseStorage = {root: [{spaces: [{cards: {content: null}}]}]}
-  const storage = {boot: {cards: [
-    {
-      top: 48, left: 48, width: 600, height: 600,
-      type: "prosemirror",
-      content: defaultProse
-    },
-    {
-      top: 48, left: 660, width: 700, height: 800,
-      type: "codemirror",
-      content: defaultCode
-    }
-  ]}}
-  window.localStorage.workshop = JSON.stringify(storage)
-}
-
-if(!localStorage.workshop) { buildStorage() }
-buildStorage();
-
-//
-// interfacing functions
-//
-
-function viewSpace(space) {
-  createOrClearMain();
-  cards = [];
-  let context = getStorage();
-  context[space].cards.forEach (card => {
-    viewCard(card);
-  })
-}
-
-function saveSpace(space) {
-  let context = getStorage();
-  context[space].cards = []; // "reset"
-
-  cards.forEach(card => {
-    if (card.type == "prosemirror") {
-      card.content = JSON.stringify(card.view.state.doc.toJSON());
-    }
-    if (card.type == "codemirror") {
-      card.content = card.view.state.doc.toString();
-    }
-
-    let view = card.view;
-    delete card.view; //remove circle
-    let storeCard = Object.assign({}, card); //shallow copy
-    context[space].cards.push(storeCard);
-    card.view = view;
-  });
-
-  saveStorage(context);
-}
-function viewCard(cardSpec) {
-  let card = document.createElement("div");
-  card.classList.add("card");
-  card.style.border = "1px dashed black"
-  card.style.position = "absolute";
-  card.style.top = cardSpec.top + "px";
-  card.style.left = cardSpec.left + "px";
-  card.style.width = cardSpec.width + "px";
-  card.style.height = cardSpec.height + "px";
-  main.appendChild(card);
-
-  let content = document.createElement("div");
-  content.classList.add("content");
-  content.style.width = "100%";
-  content.style.height = "100%";
-
-  card.appendChild(content);
-
-  let view;
-  if (cardSpec.type == "prosemirror") {
-    view = viewProseMirror(cardSpec.content, content);
-  }
-  if (cardSpec.type == "codemirror") {
-    view = viewCodeMirror(cardSpec.content, content);
-  }
-
-  buildReference(cardSpec, view);
-
-  return card; //don't use this atm
-}
-// TODO onchange?
-function saveCard() {}
-function buildReference(cardSpec, view) {
-  //cards.push({...cardSpec, view}); //correct
-  let card = Object.assign({}, cardSpec);
-  card.view = view;
-  cards.push(card);
-}
-
-function viewProseMirror(docObj, parent) {
-  let doc = pmSchema.nodeFromJSON(JSON.parse(docObj));
-
-  let view = new pmEditorView(parent, {
-    state: pmEditorState.create({
-      doc: doc,
-      plugins: pmSetup({schema: pmSchema})
-    })
-  })
-
-  // put it in parent's box
-  view.dom.style.paddingLeft = "1rem";
-  view.dom.style.paddingRight = "0.5rem";
-  view.dom.style.height = parent.style.height;
-  view.dom.style.overflow = "auto";
-  return view;
-}
-function viewCodeMirror(doc, parent) {
-  let view = new cmEditorView({
-    state: cmEditorState.create({
-      doc,
-      extensions: [cmSetup]
-    }),
-    parent
-  })
-
-  // put it in parent's box
-  view.dom.style.height = parent.style.height;
-  return view;
-}
-
-function getStorage() {
-  return JSON.parse(window.localStorage.workshop);
-}
-function saveStorage(context) {
-  window.localStorage.workshop = JSON.stringify(context);
-}
-
-function createOrClearMain() {
-  let main;
-  if (main = document.getElementById("main")) {
-    document.body.removeChild(main);
-  }
-  main = document.createElement("main");
-  main.id = "main";
-  document.body.appendChild(main);
-  document.body.style.fontSize = "1.1rem";
-}
-
-//  end interfacing functions
-
-viewSpace("boot");
-
-//
-// Execution
-//
-// locked into "boot" only right now
-window.onkeydown = onKeyDown;
-function onKeyDown(evt) {
-  if (evt.ctrlKey && evt.key == "Enter") {
-    let task = buildTask(cards);
-    run(task);
-    //run(cmview.state.doc.toString());
-  }
-  if (evt.ctrlKey && evt.key == "s") {
-    evt.preventDefault();
-    saveSpace("boot");
-  }
-}
-
-function buildTask(cards) {
-  return cards.filter(card => card.type == "codemirror")
-    .map(card => card.view.state.doc.toString())
-    .join(" ");
-}
-
-// should be in a card
-function run(task) {
-  let runner = stopify.stopifyLocally(task, {newMethod: "direct"});
-  runner.g = window;
-  runner.run(result => result);
-}
-`;
-
-    const defaultProse = `{
-  "type": "doc",
-  "content": [
-    {
-      "type": "heading",
-      "attrs": {
-        "level": 1
+    const emptyprose = `
+   {"type":"doc","content":
+    [
+      {"type":"heading","attrs":
+       {"level":1},"content":
+       [
+         {"type":"text","text":"Prose"}
+       ]
       },
-      "content": [
-        {
-          "type": "text",
-          "text": "Workshop"
-        }
-      ]
-    },
-    {
-      "type": "paragraph",
-      "content": [
-        {
-          "type": "text",
-          "text": "This is the beginnings of a digital workshop. It is intended to be an environment to provide full interface and computational control to the user. To that end, this environment initially provides three primitives on top of the browser: execution control, a rich content editor, and a code editor. The environment is intended to be a prototyping tool in which any and all functionality can be directly tied to its source, as well as redefined and re-evaluated at any point."
-        }
-      ]
-    },
-    {
-      "type": "horizontal_rule"
-    },
-    {
-      "type": "paragraph",
-      "content": [
-        {
-          "type": "text",
-          "text": "The initial view is this rich text editor which has a few basic facilities of a markdown editor, the codemirror editor to the right and an execution control engine tied to control-Enter. "
-        }
-      ]
-    },
-    {
-      "type": "paragraph",
-      "content": [
-        {
-          "type": "text",
-          "text": "In the codemirror editor is the computational description for this page. Go ahead and try to run it, ctrl-enter anywhere will do. If you make any changes to that document, or say, add another code cell or tab to this page, running it will rebuild the entire document each time."
-        }
-      ]
-    },
-    {
-      "type": "paragraph"
-    },
-    {
-      "type": "paragraph",
-      "content": [
-        {
-          "type": "text",
-          "text": "This is just the most basic setup possible, in the days to come I will expand upon the initial content within the default setup and keep it all present and editable directly from the source. The Workshop is now in a state where all future development can occur within the system itself. With just a few more wires to connect to localStorage it will persist between saves and that’s the beginning of the adventure. "
-        }
-      ]
-    },
-    {
-      "type": "paragraph",
-      "content": [
-        {
-          "type": "text",
-          "text": "— Jasper"
-        }
-      ]
-    },
-    {
-      "type": "paragraph"
-    },
-    {
-      "type": "paragraph",
-      "content": [
-        {
-          "type": "text",
-          "text": "(P.S: I wrote this damn thing twice and the first was much better. Off to fix the localStorage…)"
-        }
-      ]
+      {"type":"paragraph"}]}`;
+
+    const emptycode = `//codemirror`;
+
+    function makeCard(cardSpec, parent) {
+      // if put in layout it wont have these same attributes
+      let card = document.createElement('div');
+      card.classList.add('card');
+      card.style.position = 'absolute';
+      card.style.top = cardSpec.top + 'px';
+      card.style.left = cardSpec.left + 'px';
+      card.style.width = cardSpec.width + 'px';
+      card.style.height = cardSpec.height + 'px';
+
+      styleCard(card);
+      makeDraggable(card);
+      addResizer(card);
+      addContextMenu(card);
+
+      parent.appendChild(card);
+
+      return card;
     }
-  ]
-}`;
 
-    const exdefault = {"boot":{"cards":[{"top":48,"left":48,"width":600,"height":600,"type":"prosemirror","content":"{\"type\":\"doc\",\"content\":[{\"type\":\"heading\",\"attrs\":{\"level\":1},\"content\":[{\"type\":\"text\",\"text\":\"Workshop\"}]},{\"type\":\"paragraph\",\"content\":[{\"type\":\"text\",\"text\":\"This is a prototype digital workshop. It is intended to be an environment in which full interface and computational control are explicitly provided to the user. To that end, this workshop is built in the browser on top of vanilla technologies. It’s source is available here in the \"},{\"type\":\"text\",\"marks\":[{\"type\":\"em\"}],\"text\":\"Boot\"},{\"type\":\"text\",\"text\":\" tab alongside this editor on first page load. The environment also initially provides three “primitives” on top of the browser: a rich content editor (with live markdown and common hotkeys), a code editor, and an execution environment that improves upon the single-threaded browser VM. \"}]},{\"type\":\"paragraph\",\"content\":[{\"type\":\"text\",\"text\":\"The Workshop is a prototyping interface in which any and all functionality can be directly tied to its source, as well as redefined and re-evaluated at any point. There are a few underlying constructs which are crucial to develop this prototyping meta-environment.\"}]},{\"type\":\"ordered_list\",\"attrs\":{\"order\":1},\"content\":[{\"type\":\"list_item\",\"content\":[{\"type\":\"paragraph\",\"content\":[{\"type\":\"text\",\"text\":\"In the spirit of HyperCard and the Wiki, all content is stored in a single container type \"},{\"type\":\"text\",\"marks\":[{\"type\":\"em\"}],\"text\":\"Card\"},{\"type\":\"text\",\"text\":\" to which all functionality and view are attached. This is a prosemirror card, to the right are a collection of codemirror cards. The collection of card interfacing functions are defined here in \"},{\"type\":\"text\",\"marks\":[{\"type\":\"em\"}],\"text\":\"Boot.\"}]}]},{\"type\":\"list_item\",\"content\":[{\"type\":\"paragraph\",\"content\":[{\"type\":\"text\",\"text\":\"This space defines the interface to the Workshop explicitly. Any and all other spaces may define themselves within the the view itself or be referenced by outside “source” spaces.\"}]}]}]},{\"type\":\"horizontal_rule\"},{\"type\":\"paragraph\",\"content\":[{\"type\":\"text\",\"text\":\"This is just the most basic setup possible, in the days to come I will expand upon the initial content within the default setup and keep it all present and editable directly from the source. The Workshop is now in a state where all future development can occur within the system itself. \"}]},{\"type\":\"paragraph\",\"content\":[{\"type\":\"text\",\"text\":\"— Jasper\"}]}]}"},{"top":48,"left":660,"width":700,"height":800,"type":"codemirror","content":"let newCardSpec = {\n  top: 48, left: 48, width: 700, height: 600,\n  type: \"codemirror\",\n  content: \"// Workshop //\"\n}\n\nlet context = getStorage();\ncontext[\"Workshop\"].cards.push(newCardSpec);\n\nsaveStorage(context);\n\n\n\n\n\n\n\n\n\n\n\n"},{"top":660,"left":48,"width":600,"height":400,"type":"codemirror","content":"// two more primitives are in the works: \n// 1. Console/Sandbox\n// 2. SVG/Canvas\n\n\n\n"},{"top":12,"left":48,"width":1824,"height":24,"type":"tabs","content":"I guess some tabs"},{"top":48,"left":1372,"width":500,"height":600,"type":"prosemirror","content":"{\"type\":\"doc\",\"content\":[{\"type\":\"heading\",\"attrs\":{\"level\":1},\"content\":[{\"type\":\"text\",\"text\":\"Patterns\"}]},{\"type\":\"heading\",\"attrs\":{\"level\":3},\"content\":[{\"type\":\"text\",\"text\":\"Tabs\"}]},{\"type\":\"paragraph\",\"content\":[{\"type\":\"text\",\"text\":\"Within the bounding box of a card?\"}]},{\"type\":\"paragraph\",\"content\":[{\"type\":\"text\",\"text\":\"How and what card listeners should exist? Are tabs simply low-content cards? How to attach listener? A separate constructor separating out the *mirror cases vs buttons, canvas or console?\"}]},{\"type\":\"paragraph\",\"content\":[{\"type\":\"text\",\"text\":\"How do we want to do wm decorators and names?\"}]},{\"type\":\"paragraph\"},{\"type\":\"paragraph\"},{\"type\":\"paragraph\",\"content\":[{\"type\":\"text\",\"text\":\"All the more reason to implement saveCard\"}]},{\"type\":\"paragraph\"},{\"type\":\"paragraph\"},{\"type\":\"paragraph\"},{\"type\":\"paragraph\"},{\"type\":\"horizontal_rule\"},{\"type\":\"paragraph\",\"content\":[{\"type\":\"text\",\"text\":\"i3 drawers? vs org drawers?\"}]},{\"type\":\"paragraph\",\"content\":[{\"type\":\"text\",\"text\":\"c2 object browser for window attachments from build?\"}]}]}"},{"top":660,"left":1372,"width":500,"height":300,"type":"prosemirror","content":"{\"type\":\"doc\",\"content\":[{\"type\":\"heading\",\"attrs\":{\"level\":1},\"content\":[{\"type\":\"text\",\"text\":\"Cards\"}]},{\"type\":\"paragraph\",\"content\":[{\"type\":\"text\",\"text\":\"Editing \"},{\"type\":\"text\",\"marks\":[{\"type\":\"em\"}],\"text\":\"existing\"},{\"type\":\"text\",\"text\":\" cards is unwieldy. Need to improve on the current unnamed array access.\"}]},{\"type\":\"paragraph\",\"content\":[{\"type\":\"text\",\"text\":\"Expand the card types capabilities.\"}]},{\"type\":\"paragraph\"}]}"},{"top":12,"left":148,"width":100,"height":24,"type":"button","content":"Workshop"},{"top":12,"left":48,"width":100,"height":24,"type":"button","content":"boot"}]},"Workshop":{"cards":[{"top":12,"left":48,"width":1824,"height":24,"type":"tabs","content":"I guess some tabs"},{"top":12,"left":148,"width":100,"height":24,"type":"button","content":"Workshop"},{"top":12,"left":48,"width":100,"height":24,"type":"button","content":"boot"},{"top":48,"left":48,"width":700,"height":600,"type":"codemirror","content":"// Workshop //\n\n// lets try an export\n\nconsole.log(JSON.stringify(getStorage()))\n"}]}};
+    function styleCard(card) {
+      card.style.border = '1px dashed black';
+      card.style.background = '#ffffff';
+      card.style.cursor = 'auto';
+    }
+    function addResizer(card, step=12) {
+      let resizer = document.createElement('div');
+      resizer.style.position = 'absolute';
+      resizer.style.top = parseInt(card.style.height) - 10 + 'px';
+      resizer.style.left = parseInt(card.style.width) - 10 + 'px';
+      resizer.style.width = '10px';
+      resizer.style.height = '10px';
 
-    // stopify is included via <script> in /public
-    //  default
+      resizer.style.background = '#eeeeee';
+      resizer.style.zIndex = 1;
+      resizer.style.cursor = 'nwse-resize';
 
-    // setup
-    window.onload = onLoad;
-    function onLoad() {
-      //
-      //  Base
-      //
-      let cards = [];
-      let space = "boot";
-      //
-      // Storage
-      //
+      resizer.onmousedown = function (evt) {
+        evt.stopPropagation();
+        resizer.dataset.startX = evt.clientX;
+        resizer.dataset.startY = evt.clientY;
 
-      function buildStorage() {
-        /*
-        const storage = {boot: {cards: [
-          {
-            top: 48, left: 48, width: 600, height: 600,
-            type: "prosemirror",
-            content: defaultProse
-          },
-          {
-            top: 48, left: 660, width: 700, height: 800,
-            type: "codemirror",
-            content: defaultCode
+        document.onmousemove = function (evt) {
+          evt.preventDefault();
+          let width = parseInt(card.style.width);
+          let height = parseInt(card.style.height);
+
+          let startX = parseInt(resizer.dataset.startX);
+          let startY = parseInt(resizer.dataset.startY);
+
+          let dx = evt.clientX - startX;
+          let dy = evt.clientY - startY;
+
+          if (Math.abs(dx) >= step) {
+            let times = Math.floor(Math.abs(dx) / step) + (dx < 0 ? 0 : 1);
+            if (dx < 0) {
+              startX -= step * times;
+              width -= step * times;
+              resizer.style.left = parseInt(resizer.style.left) - step * times + 'px';
+            }
+            else { //positive
+              startX += step * times;
+              width += step * times;
+              resizer.style.left = parseInt(resizer.style.left) + step * times + 'px';
+            }
           }
-        ]}}
-        */
-        const storage = exdefault;
-        saveStorage(storage);
-      }
-
-      //
-      // interfacing functions
-      //
-
-      // viewSpace (space)
-      // space from storage, stores current deck in cards variable
-      function viewSpace(space) {
-        createOrClearMain();
-        cards = [];
-        let context = getStorage();
-        context[space].cards.forEach (card => {
-          cards.push(viewCard(card));
-          //viewCard(card);
-        });
-      }
-
-      function saveSpace(space) {
-        let context = getStorage();
-        context[space].cards = []; // "reset"
-
-        cards.forEach(card => {
-          if (card.cardSpec.type == "prosemirror") {
-            card.cardSpec.content = JSON.stringify(card.view.state.doc.toJSON());
-          }
-          if (card.cardSpec.type == "codemirror") {
-            card.cardSpec.content = card.view.state.doc.toString();
+          if (Math.abs(dy) >= step) {
+            let times = Math.floor(Math.abs(dy) / step) + (dy < 0 ? 0 : 1);
+            if (dy < 0) {
+              startY -= step * times;
+              height -= step * times;
+              resizer.style.top = parseInt(resizer.style.top) - step * times + 'px';
+            }
+            else { //positive
+              startY += step * times;
+              height += step * times;
+              resizer.style.top = parseInt(resizer.style.top) + step * times + 'px';
+            }
           }
 
-          //let storeCard = Object.assign({}, card.cardSpec); //shallow copy
-          context[space].cards.push(card.cardSpec);
-        });
+          resizer.dataset.startX = startX;
+          resizer.dataset.startY = startY;
+          card.style.width = width + 'px';
+          card.style.height = height + 'px';
+        };
+        document.onmouseup = function (evt) {
+          document.onmousemove = null;
+          document.onmouseup = null;
+        };
+      };
 
-        saveStorage(context);
-      }
-      function viewCard(cardSpec) {
-        let card = document.createElement("div");
-        card.classList.add("card");
-        card.style.border = "1px dashed black";
-        card.style.position = "absolute";
-        card.style.top = cardSpec.top + "px";
-        card.style.left = cardSpec.left + "px";
-        card.style.width = cardSpec.width + "px";
-        card.style.height = cardSpec.height + "px";
-        main.appendChild(card);
+      card.appendChild(resizer);
+    }
+    function makeDraggable(card, step=12) {
+      //const step = 12; //constrain to 12pt grid
+      card.onmousedown = function (evt) {
+        evt.stopPropagation();
+        if(evt.altKey) {
+          card.style.cursor = 'move';
+          card.dataset.startX = evt.clientX;
+          card.dataset.startY = evt.clientY;
 
-        let content = document.createElement("div");
-        content.classList.add("content");
-        content.style.width = "100%";
-        content.style.height = "100%";
+          document.onmousemove = function (evt) {
+            evt.preventDefault();
+            let startX = parseInt(card.dataset.startX);
+            let startY = parseInt(card.dataset.startY);
+            let offsetX = evt.clientX - startX;
+            let offsetY = evt.clientY - startY;
 
-        card.appendChild(content);
+            let top = parseInt(card.style.top);
+            let left = parseInt(card.style.left);
 
-        let view;
-        if (cardSpec.type == "prosemirror") {
-          view = viewProseMirror(cardSpec.content, content);
-        }
-        if (cardSpec.type == "codemirror") {
-          view = viewCodeMirror(cardSpec.content, content);
-        }
-        if (cardSpec.type == "button") {
-          content.style.display = "flex";
-          content.style.justifyContent = "center";
-          content.style.alignItems = "center";
-          content.style.background = "#e5e5e5";
+            let xtimes = Math.floor(Math.abs(offsetX) / step) + (offsetX < 0 ? 0 : 1);
+            let leftOffset = offsetX % step;
+            if (Math.abs(leftOffset) >= (9)) {
+              leftOffset >= 0 ? (left += step * xtimes, startX += step * xtimes) :
+                (left -= step * xtimes, startX -= step * xtimes);
+            }
 
-          let label = document.createTextNode(cardSpec.content);
-          content.appendChild(label);
+            let ytimes = Math.abs(Math.floor(offsetY / step)) + (offsetY < 0 ? 0 : 1);
+            let topOffset = offsetY % step;
+            if (Math.abs(topOffset) >= (9)) {
+              topOffset >= 0 ? (top += step * ytimes, startY += step * ytimes) :
+                (top -= step * ytimes, startY -= step * ytimes);
+            }
 
-          content.onclick = () => {
-            saveSpace(space);
-            viewSpace(cardSpec.content);
-            space = cardSpec.content; //update space global pointer
+            card.dataset.startX = startX;
+            card.dataset.startY = startY;
+            card.style.top = top + 'px';
+            card.style.left = left + 'px';
+          };
+          document.onmouseup = function (evt) {
+            document.onmousemove = null;
+            document.onmouseup = null;
+            card.style.cursor = 'auto';
           };
         }
-
-        return {card, cardSpec, view}; //don't use this atm
-      }
-      // TODO onchange?
-      function saveCard() {}
-
-      function viewProseMirror(docObj, parent) {
-        let doc = pmSchema.nodeFromJSON(JSON.parse(docObj));
-
-        let view = new EditorView$1(parent, {
-          state: EditorState$1.create({
-            doc: doc,
-            plugins: pmSetup({schema: pmSchema})
-          })
-        });
-
-        // put it in parent's box
-        view.dom.style.paddingLeft = "1rem";
-        view.dom.style.paddingRight = "0.5rem";
-        view.dom.style.height = parent.style.height;
-        view.dom.style.overflow = "auto";
-        return view;
-      }
-      function viewCodeMirror(doc, parent) {
-        let view = new EditorView({
-          state: EditorState.create({
-            doc,
-            extensions: [cmSetup]
-          }),
-          parent
-        });
-
-        // put it in parent's box
-        view.dom.style.height = parent.style.height;
-        return view;
-      }
-
-      function getStorage() {
-        return JSON.parse(window.localStorage.workshop);
-      }
-      function saveStorage(context) {
-        window.localStorage.workshop = JSON.stringify(context);
-      }
-
-      function createOrClearMain() {
-        let main;
-        if (main = document.getElementById("main")) {
-          document.body.removeChild(main);
-        }
-        main = document.createElement("main");
-        main.id = "main";
-        document.body.appendChild(main);
-        document.body.style.fontSize = "1.1rem";
-      }
-
-      //
-      // Execution
-      //
-      // locked into "boot" only right now
-      window.onkeydown = onKeyDown;
-      function onKeyDown(evt) {
-        if (evt.ctrlKey && evt.key == "Enter") {
-          saveSpace(space);
-          let task = buildTask(cards);
-          run(task);
-          //run(cmview.state.doc.toString());
-        }
-        if (evt.ctrlKey && evt.key == "s") {
-          evt.preventDefault();
-          saveSpace(space);
-        }
-      }
-
-      function buildTask(cards) {
-        return cards.filter(card => card.cardSpec.type == "codemirror")
-          .map(card => card.view.state.doc.toString())
-          .join(" ");
-      }
-
-      // should be in a card
-      function run(task) {
-        let runner = stopify.stopifyLocally(task, {newMethod: "direct"});
-        runner.g = window;
-        runner.run(result => result); //ignores stopify value
-      }
-      function buildWindowEnvironment() {
-        // window init for runtime
-        // imports
-        window.cmEditorState = EditorState;
-        window.cmEditorView = EditorView;
-        window.cmSetup = cmSetup;
-        window.pmEditorState = EditorState$1;
-        window.pmEditorView = EditorView$1;
-        window.DOMParser = DOMParser;
-        window.pmSetup = pmSetup;
-        window.pmSchema = pmSchema;
-        window.defaultCode = defaultCode;
-        window.defaultProse = defaultProse;
-        // local
-        window.run = run;
-        window.stopify = stopify;
-        window.onKeyDown = onKeyDown;
-        window.cards = cards;
-        window.space = space;
-        window.buildStorage = buildStorage;
-        window.viewSpace = viewSpace;
-        window.saveSpace = saveSpace;
-        window.viewCard = viewCard;
-        window.saveCard = saveCard;
-        window.viewProseMirror = viewProseMirror;
-        window.viewCodeMirror = viewCodeMirror;
-        window.getStorage = getStorage;
-        window.saveStorage = saveStorage;
-        window.createOrClearMain = createOrClearMain;
-        window.buildTask = buildTask;
-      }
-
-      function mainrun() {
-        if(!localStorage.workshop) { buildStorage(); }
-        //buildStorage();
-
-        viewSpace("boot");
-        buildWindowEnvironment();
-      }
-      mainrun();
+      };
     }
+    function addContextMenu(card) {
+      card.oncontextmenu = function (evt) {
+        evt.preventDefault();
+        evt.stopPropagation();
+
+        let menu = document.createElement('div');
+        menu.style.position = 'absolute';
+        menu.style.left = evt.offsetX + 'px';
+        menu.style.top = evt.offsetY + 'px';
+        menu.style.borderLeft = "1px dashed black";
+        menu.style.borderTop = "1px dashed black";
+        menu.style.borderRight = "1px dashed black";
+
+        menu.onmouseout = (evt) => {
+          if (!menu.contains(evt.relatedTarget)) {
+            menu.remove();
+          }
+        };
+
+        let emptybuttons = ['codemirror', 'prosemirror', 'remove'];
+        let contentbuttons = ['clone', 'remove'];
+
+        card.appendChild(menu);
+        if (card.dataset.filled === 'true') {
+          contentbuttons.forEach (btn => buildButtons(btn));
+        }
+        else {
+          emptybuttons.forEach (btn => buildButtons(btn));
+        }
+
+        function buildButtons(btn) {
+          let div;
+          div = document.createElement('div');
+          div.style.width = '100% - 1rem';
+          div.style.height = '1.8rem';
+          div.style.paddingLeft = '1rem';
+          div.style.paddingRight = '1rem';
+
+          div.style.display = 'flex';
+          div.style.alignItems = 'center';
+
+          div.style.borderBottom = '1px dashed black';
+          div.innerHTML = btn;
+          div.onmouseover = () => {div.style.background = '#eeeeee';};
+          div.onmouseout = () => {div.style.background = '#ffffff';};
+          div.onclick = (evt) =>  {
+            let target = evt.target;
+            let type = target.innerHTML;
+            let parent = target.parentElement.parentElement;
+            if (type == 'codemirror') {
+              putCodeMirror(emptycode, parent);
+              parent.dataset.filled = true;
+            }
+            if (type == 'prosemirror') {
+              putProseMirror(emptyprose, parent);
+              parent.dataset.filled = true;
+            }
+            if (type == 'remove') {
+              parent.remove();
+            }
+            target.parentElement.remove();
+          };
+          menu.appendChild(div);
+        }
+      };
+    }
+
+    function putCodeMirror(doc, parent) {
+      let view = new EditorView({
+        state: EditorState.create({
+          doc,
+          extensions: [cmSetup]
+        }),
+        parent
+      });
+
+      // put it in parent's box
+      view.dom.style.height = '100%';
+      return view;
+    }
+    function putProseMirror(docObj, parent) {
+      let doc = pmSchema.nodeFromJSON(JSON.parse(docObj));
+
+      let view = new EditorView$1(parent, {
+        state: EditorState$1.create({
+          doc: doc,
+          plugins: pmSetup({schema: pmSchema})
+        })
+      });
+
+      view.dom.style.paddingLeft = '1rem';
+      view.dom.style.paddingRight = '0.5rem';
+
+      // put it in parent's box
+      view.dom.style.height = '100%';
+      view.dom.style.overflow = 'auto';
+      return view;
+    }
+
+    //import * as util from './utility.js'
+
+    window.onload = () => {
+      let main = document.createElement('main');
+      document.body.appendChild(main);
+      let boot = makeCard({top: 0, left: 0,
+                           width: window.innerWidth, height: window.innerHeight}, main);
+      let grid = document.createElement('canvas');
+      grid.width = window.innerWidth;
+      grid.height = window.innerHeight;
+      boot.appendChild(grid);
+      let gctx = grid.getContext('2d');
+      gctx.globalAlpha = 0.2;
+      for (let x = 12; x < grid.width; x += 12) {
+        for (let y = 12; y < grid.height; y += 12) {
+          gctx.fillRect(x, y, 1, 1);
+        }
+      }
+      boot.style.border = '';
+      boot.style.cursor = 'crosshair';
+      /*
+      let card = makeCard({top: 12, left: 12, width: 120, height: 120}, boot)
+      card.style.resize = 'both';
+      let card2 = makeCard({top: 12, left: 12, width: 120, height: 120}, boot)
+      putCodeMirror(emptycode, card)
+      putProseMirror(emptyprose, card2);
+      */
+
+      // make cards by draggin
+
+      boot.onmousedown = function (evt) {
+        const step = 12;
+        boot.dataset.startX = evt.clientX;
+        boot.dataset.startY = evt.clientY;
+
+        let left = Math.floor(evt.clientX / step) * step;
+        let top = Math.floor(evt.clientY / step) * step;
+        let newCard = makeCard({top: top, left: left, width: 12, height: 12}, boot);
+        let resizer = newCard.firstChild;
+        document.onmousemove = function (evt) {
+          evt.preventDefault();
+          evt.stopPropagation();
+          let width = parseInt(newCard.style.width);
+          let height = parseInt(newCard.style.height);
+
+          let startX = parseInt(boot.dataset.startX);
+          let startY = parseInt(boot.dataset.startY);
+
+          let dx = evt.clientX - startX;
+          let dy = evt.clientY - startY;
+
+          if (Math.abs(dx) >= step) {
+            let times = Math.floor(Math.abs(dx) / step) + (dx < 0 ? 0 : 1);
+            if (dx < 0) {
+              startX -= step * times;
+              width -= step * times; //TODO
+              resizer.style.left = parseInt(resizer.style.left) - step * times + 'px';
+            }
+            else { //positive
+              startX += step * times;
+              width += step * times;
+              resizer.style.left = parseInt(resizer.style.left) + step * times + 'px';
+            }
+          }
+          if (Math.abs(dy) >= step) {
+            let times = Math.floor(Math.abs(dy) / step) + (dy < 0 ? 0 : 1);
+            if (dy < 0) {
+              startY -= step * times;
+              height -= step * times;
+              resizer.style.top = parseInt(resizer.style.top) - step * times + 'px';
+            }
+            else { //positive
+              startY += step * times;
+              height += step * times;
+              resizer.style.top = parseInt(resizer.style.top) + step * times + 'px';
+            }
+          }
+
+          boot.dataset.startX = startX;
+          boot.dataset.startY = startY;
+          newCard.style.width = width + 'px';
+          newCard.style.height = height + 'px';
+        };
+        document.onmouseup = function (evt) {
+          document.onmousemove = null;
+          document.onmouseup = null;
+
+
+        };
+      };
+    };
 
 }());
 //# sourceMappingURL=bundle.js.map

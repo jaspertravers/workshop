@@ -24,6 +24,7 @@ export default {
 		commonjs(), // converts date-fns to ES modules
     json(), // trying to fix error pointing at json module
     nodePolyfills(),
+    // production && livereload({delay : 200}), //didn't work
     livereload({delay : 200}),
 		production && terser() // minify, but only in production
 	]

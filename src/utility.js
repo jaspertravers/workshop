@@ -24,6 +24,7 @@ function makeCard(cardSpec, parent) {
   styleCard(card);
   makeDraggable(card);
   addResizer(card);
+  addContextMenu(card);
 
   parent.appendChild(card);
 
@@ -53,6 +54,7 @@ function addResizer(card, step=12) {
     resizer.dataset.startY = evt.clientY;
 
     document.onmousemove = function (evt) {
+      evt.preventDefault();
       let width = parseInt(card.style.width);
       let height = parseInt(card.style.height);
 
@@ -112,6 +114,7 @@ function makeDraggable(card, step=12) {
       card.dataset.startY = evt.clientY;
 
       document.onmousemove = function (evt) {
+        evt.preventDefault();
         let startX = parseInt(card.dataset.startX);
         let startY = parseInt(card.dataset.startY);
         let offsetX = evt.clientX - startX;
@@ -144,6 +147,78 @@ function makeDraggable(card, step=12) {
         document.onmouseup = null;
         card.style.cursor = 'auto';
       }
+    }
+  }
+}
+function addContextMenu(card) {
+  card.oncontextmenu = function (evt) {
+    evt.preventDefault();
+    evt.stopPropagation();
+
+    let menu = document.createElement('div');
+    menu.style.position = 'absolute';
+    menu.style.left = evt.offsetX + 'px';
+    menu.style.top = evt.offsetY + 'px';
+    menu.style.borderLeft = "1px dashed black";
+    menu.style.borderTop = "1px dashed black";
+    menu.style.borderRight = "1px dashed black";
+
+    menu.onmouseout = (evt) => {
+      if (!menu.contains(evt.relatedTarget)) {
+        menu.remove();
+      }
+    }
+
+    let emptybuttons = ['codemirror', 'prosemirror', 'remove'];
+    let contentbuttons = ['clone', 'remove'];
+
+    card.appendChild(menu);
+    if (card.dataset.filled === 'true') {
+      contentbuttons.forEach (btn => buildButtons(btn))
+    }
+    else {
+      emptybuttons.forEach (btn => buildButtons(btn))
+    }
+
+    function buildButtons(btn) {
+      let div;
+      div = document.createElement('div');
+      div.style.width = '100% - 1rem';
+      div.style.height = '1.8rem';
+      div.style.paddingLeft = '1rem';
+      div.style.paddingRight = '1rem';
+
+      div.style.display = 'flex';
+      div.style.alignItems = 'center';
+
+      div.style.borderBottom = '1px dashed black';
+      div.innerHTML = btn;
+      div.onmouseover = () => {div.style.background = '#eeeeee'}
+      div.onmouseout = () => {div.style.background = '#ffffff'}
+      div.onclick = (evt) =>  {
+        let target = evt.target;
+        let type = target.innerHTML;
+        let parent = target.parentElement.parentElement;
+        if (type == 'codemirror') {
+          putCodeMirror(emptycode, parent);
+          parent.dataset.filled = true;
+        }
+        if (type == 'prosemirror') {
+          putProseMirror(emptyprose, parent);
+          parent.dataset.filled = true;
+        }
+        if (type == 'remove') {
+          parent.remove();
+        }
+        //TODO
+        if (type == 'clone') {
+          //node.cloneNode(true) is a bit rough to work with.
+          //it doesn't copy event listeners and breaks the editors
+          //come back to this after runtime objects are connected to nodes
+        }
+        target.parentElement.remove();
+      }
+      menu.appendChild(div);
     }
   }
 }

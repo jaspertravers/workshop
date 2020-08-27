@@ -119,6 +119,20 @@ taken most things from ~prosemirror-example-setup~ and the basic editor example.
 
 Block will be a div that has a child div to fill with content.
 
+**** Dev Tools
+https://www.npmjs.com/package/chrome-devtools-frontend
+
+npm install chrome-devtools-frontend
+
+https://martinfowler.com/articles/micro-frontends.html
+
+https://chrome-devtools-frontend.appspot.com/serve_file/@9c7912d3335c02d62f63be2749d84b2d0b788982/devtools_app.html
+https://github.com/auchenberg/devtools-remote/issues/5
+
+Dev Tools links that "work"
+https://chrome-devtools-frontend.appspot.com/serve_file/@9c7912d3335c02d62f63be2749d84b2d0b788982/devtools_app.html
+https://chrome-devtools-frontend.appspot.com/serve_file/@9c7912d3335c02d62f63be2749d84b2d0b788982/devtools_app.html
+https://chrome-devtools-frontend.appspot.com/serve_file/@010ddcfda246975d194964ccf20038ebbdec6084/audits2_worker/audits2_worker_module.js
 *** Links
 - https://git-scm.com/book/
 - https://rollupjs.org/guide/en/
