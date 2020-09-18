@@ -14,7 +14,8 @@ import {defaultKeymap} from "@codemirror/next/commands"
 import {bracketMatching} from "@codemirror/next/matchbrackets"
 import {closeBrackets} from "@codemirror/next/closebrackets"
 import {searchKeymap} from "@codemirror/next/search"
-import {autocomplete, autocompleteKeymap} from "@codemirror/next/autocomplete"
+//import {autocomplete, autocompleteKeymap} from "@codemirror/next/autocomplete" //breaking change 0.8.0 -> 0.12.0
+import {autocompletion, completionKeymap} from "@codemirror/next/autocomplete"
 import {commentKeymap} from "@codemirror/next/comment"
 import {rectangularSelection} from "@codemirror/next/rectangular-selection"
 import {gotoLineKeymap} from "@codemirror/next/goto-line"
@@ -33,7 +34,7 @@ export const cmSetup = [
   defaultHighlighter,
   bracketMatching(),
   closeBrackets(),
-  autocomplete(),
+  autocompletion(),
   rectangularSelection(),
   highlightActiveLine(),
   highlightSelectionMatches(),
@@ -44,7 +45,7 @@ export const cmSetup = [
     ...foldKeymap,
     ...commentKeymap,
     ...gotoLineKeymap,
-    ...autocompleteKeymap,
+    ...completionKeymap,
     ...lintKeymap
   ]),
   javascript()

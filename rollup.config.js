@@ -6,7 +6,7 @@ import { terser } from 'rollup-plugin-terser';
 import json from '@rollup/plugin-json';
 import nodePolyfills from 'rollup-plugin-node-polyfills';
 
-import livereload from 'rollup-plugin-livereload';
+//import livereload from 'rollup-plugin-livereload';
 
 // `npm run build` -> `production` is true
 // `npm run dev` -> `production` is false
@@ -25,7 +25,7 @@ export default {
     json(), // trying to fix error pointing at json module
     nodePolyfills(),
     // production && livereload({delay : 200}), //didn't work
-    livereload({delay : 200}),
+    //livereload({delay : 200}),
 		production && terser() // minify, but only in production
 	]
 };
