@@ -10,19 +10,6 @@ Communication, computation, work.
 - https://prosemirror.net/
 - https://rollupjs.org/guide/en/
 
-** Tasks
-*** TODO codemirror component
-**** TODO put in box, make easy to make
-*** TODO prosemirror component
-**** TODO put in box, make easy to make
-**** TODO styles (margin, horizontal rule)
-**** TODO markdown
-**** TODO header bar
-*** TODO tabs: general UI buttons/message system?
-*** TODO storage
-**** TODO localstorage
-**** TODO export/import
-*** TODO
 
 * Notes
 ** Developtment
@@ -192,13 +179,13 @@ https://prosemirror.net/docs/ref/#inputrules
 
 There's a big opportunity to make this work correctly. Searching the tiptap issue list for "mark" yielded multiple open issues regarding markdown ergonomics.
 
-
 ** Console
 debug/repl style output; printing from code
 
 *** Links
 - https://eloquentjavascript.net/code/
 - https://github.com/marijnh/Eloquent-JavaScript/tree/master/html/js
+-
 
 ** Canvas/SVG
 creative coding output
