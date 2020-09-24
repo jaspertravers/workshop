@@ -2,25 +2,45 @@
   'use strict';
 
   class Card {
-    constructor(spec) {
+    /**
+     * spec: {left, top, width, height}
+     *   left, top, width, height: integer -- card position
+     * type: {type: content}
+     *   type:    string  -- indicates card type
+     *   content: depends -- used to build a card of type
+     */
+    constructor(spec, type) {
+      //serializable
       this.spec = spec;
+      this.type = type; //{type: content}
+
       this.parent = null;
       this.children = [];
 
+      //generated
       this.node = null;
-      this.options = {};
-      this.log = [];
     }
-    newCard(spec) {
-      const card = new Card(spec);
+    addCard(spec, type) {
+      const card = new Card(spec, type);
       this.children.push (card);
       card.parent = this;
       return card;
     }
-    layout(spec) {
+    layout(func) {
       //TODO
+      //I'm in the dark on this one...
     }
-    render(options=this.options) {
+    generate() {
+      let content;
+      if (content = this.type.empty) {
+        this.buildEmpty(content);
+      }
+      if (content = this.type.controller) {
+        this.buildEmpty(content);
+        this.buildController(content);
+      }
+    }
+    buildEmpty(content) {
       const card = document.createElement('div');
       card.classList.add('card');
       card.style.position = 'absolute';
@@ -28,37 +48,54 @@
       card.style.left = this.spec.left + 'px';
       card.style.width = this.spec.width + 'px';
       card.style.height = this.spec.height + 'px';
-      //card.style.background = '#eee'; //DEBUG
 
-      if (options.border === 'all') card.style.border = '1px dashed black';
-      if (options.border === 'right') card.style.borderRight = '1px dashed black';
-      this.options = options;
+      if (content.border === 'all') card.style.border = '1px dashed black';
+      if (content.border === 'left') card.style.borderLeft = '1px dashed black';
+      if (content.border === 'top') card.style.borderTop = '1px dashed black';
+      if (content.border === 'right') card.style.borderRight = '1px dashed black';
+      if (content.border === 'bottom') card.style.borderBottom = '1px dashed black';
 
       this.node = card;
-      this.visible = true;
-      //root is appended to document.body not here; every other card added to DOM here
-      if (this.parent) {
-        this.parent.node.appendChild(this.node);
-      }
+      this.parent.node.appendChild(this.node);
+      return card;
     }
+    buildController({target, keys}) {
+      // make two cards, one appended to target one a child of this controller
+      let leftoffset = 0;
+      let buttonwidth = 100;
+      keys.forEach(k => {
+        let buttonspec = {left: leftoffset, top: 0, width: buttonwidth, height:this.spec.height};
+        let buttontype = {empty: {border: 'all'}};
+        let button = this.addCard(buttonspec, buttontype);
+        button.generate();
+        leftoffset += buttonwidth;
 
+        let tabspec = {left: 0, top: 0, width: target.spec.width, height: target.spec.height};
+        let tabtype = {empty: {}};
+        let tab = target.addCard(tabspec, tabtype);
+
+        button.action = (context) => (event) => {
+          tab.generate();
+        };
+      });
+    }
     set action(func) {
+      //TODO
       this.node.onclick = func(this);
     }
-
-    save(options={}) {
-      if (options.visible) this.visible = options.visible;
+    save() {
       this.node.remove();
       this.node = null;
+
+      this.children.forEach(c => c.save());
     }
-    load(options={}) {
+    load() {
+      //TODO
       //assumes this card and all children have not been loaded
       //assumes this card exists by having been constructed as a new Card or card.newCard
 
-      if (options.visible) this.visible = true;
-      if (this.visible) {
-        this.render();
-      }
+      this.render();
+
       this.children.forEach(c => c.load());
     }
   }
@@ -29549,70 +29586,56 @@
   }
   */
 
-  window.onload = function(event) {
+  onload = function(event) {
     // root
-    const rootspec = {left: 0, top: 0, width: window.innerWidth, height: window.innerHeight};
-    const root = new Card(rootspec);
-    root.parent = {node: document.body};
+    const root = new Card({left: 0, top: 0, width: window.innerWidth, height: window.innerHeight});
+    root.parent = {node: document.body}; //special cased root
     root.render();
-    //document.body.appendChild(root.node);
-    window.root = root;
+    window.root = root; //DEBUG
 
     // tabs, tools and target content area
     const margin = 12;
-    const pad = 36;
+    const pad = 48;
 
-    const tabsspec = {left: pad, top: margin, width: root.spec.width - pad - margin, height: 24};
-    const tabs = root.newCard(tabsspec);
+    const tabs = root.addCard({left: pad, top: margin, width: root.spec.width - pad - margin, height: 24});
     tabs.render({border: 'all'});
 
-    const toolsspec = {left: margin, top: pad, width: 24, height: root.spec.height - pad - margin};
-    const tools = root.newCard(toolsspec);
+    const tools = root.addCard({left: margin, top: pad, width: 24, height: root.spec.height - pad - margin});
     tools.render({border: 'all'});
 
+    const content = root.addCard({left: pad, top: pad, width: root.spec.width - pad, height: root.spec.height - pad});
+    content.render();
+
+    makeController(tabs, content, ['boot', 'viewport', 'workspace']);
+  };
+  window.onload = function(event) {
+    // root
+    const root = new Card({left: 0, top: 0, width: window.innerWidth, height: window.innerHeight});
+    root.parent = {node: document.body}; //special cased root
+    root.type = {empty: {}}; //special cased root
+    root.generate();
+    window.root = root; //DEBUG
+
+    // tabs, tools and target content area
+    const margin = 12;
+    const pad = 48;
+
     const contentspec = {left: pad, top: pad, width: root.spec.width - pad, height: root.spec.height - pad};
-    const content = root.newCard(contentspec);
-    content.render({});
+    const contenttype = {empty: {}};
+    const content = root.addCard(contentspec, contenttype);
+    content.generate();
 
-    // tabs
-    const boottabspec = {left: 0, top: 0, width: 100, height: 24};
-    const boottab = tabs.newCard(boottabspec);
-    boottab.render({border: 'right'});
-    const worktabspec = {left: 100, top: 0, width: 100, height: 24};
-    const worktab = tabs.newCard(worktabspec);
-    worktab.render({border: 'right'});
-    const viewtabspec = {left: 200, top: 0, width: 100, height: 24};
-    const viewtab = tabs.newCard(viewtabspec);
-    viewtab.render({border: 'right'});
+    const tabspec = {left: pad, top: margin, width: root.spec.width - pad - margin, height: 24};
+    const tabtype = {controller: {target: content, keys: ['boot', 'viewport', 'workshop']}};
+    const tabs = root.addCard(tabspec, tabtype);
+    tabs.generate();
 
-    // content fill
-    const bootspec = {left: 0, top: 0, width: content.spec.width, height: content.spec.height};
-    const workspec = {left: 0, top: 0, width: content.spec.width, height: content.spec.height};
-    const viewspec = {left: 0, top: 0, width: content.spec.width, height: content.spec.height};
+    const toolspec = {left: margin, top: pad, width: 24, height: root.spec.height - pad - margin};
+    const tooltype = {empty: {border: 'all'}};
+    const tools = root.addCard(toolspec, tooltype);
+    tools.generate();
 
-    const boot = content.newCard(bootspec);
-    const work = content.newCard(workspec);
-    const view = content.newCard(viewspec);
-
-    const bootchildtest = {left: 12, top: 12, width: 120, height: 120};
-    const bootchild = boot.newCard(bootchildtest);
-
-    let target;
-    boottab.action = (context) => (event) => {
-      if (target = content.target) target.save({visible: false});
-      content.target = boot;
-      boot.load({visible: true});
-    };
-    worktab.action = (context) => (event) => {
-      if (target = content.target) target.save({visible: false});
-      content.target = work;
-      work.load({visible: true});
-    };
-    viewtab.action = (context) => (event) => {
-      if (target = content.target) target.save({visible: false});
-      content.target = view;
-      view.load({visible: true});
-    };
+    //makeController(tabs, content, ['boot', 'viewport', 'workspace']);
   };
 
 }());

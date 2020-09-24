@@ -12,68 +12,54 @@ window.onload = function(event) {
 }
 */
 
-window.onload = function(event) {
+onload = function(event) {
   // root
-  const rootspec = {left: 0, top: 0, width: window.innerWidth, height: window.innerHeight};
-  const root = new Card(rootspec);
-  root.parent = {node: document.body}
+  const root = new Card({left: 0, top: 0, width: window.innerWidth, height: window.innerHeight});
+  root.parent = {node: document.body} //special cased root
   root.render()
-  //document.body.appendChild(root.node);
-  window.root = root;
+  window.root = root; //DEBUG
 
   // tabs, tools and target content area
   const margin = 12;
-  const pad = 36;
+  const pad = 48;
 
-  const tabsspec = {left: pad, top: margin, width: root.spec.width - pad - margin, height: 24};
-  const tabs = root.newCard(tabsspec);
+  const tabs = root.addCard({left: pad, top: margin, width: root.spec.width - pad - margin, height: 24});
   tabs.render({border: 'all'});
 
-  const toolsspec = {left: margin, top: pad, width: 24, height: root.spec.height - pad - margin};
-  const tools = root.newCard(toolsspec);
+  const tools = root.addCard({left: margin, top: pad, width: 24, height: root.spec.height - pad - margin});
   tools.render({border: 'all'});
 
+  const content = root.addCard({left: pad, top: pad, width: root.spec.width - pad, height: root.spec.height - pad});
+  content.render();
+
+  makeController(tabs, content, ['boot', 'viewport', 'workspace']);
+}
+window.onload = function(event) {
+  // root
+  const root = new Card({left: 0, top: 0, width: window.innerWidth, height: window.innerHeight});
+  root.parent = {node: document.body} //special cased root
+  root.type = {empty: {}} //special cased root
+  root.generate()
+  window.root = root; //DEBUG
+
+  // tabs, tools and target content area
+  const margin = 12;
+  const pad = 48;
+
   const contentspec = {left: pad, top: pad, width: root.spec.width - pad, height: root.spec.height - pad};
-  const content = root.newCard(contentspec);
-  content.render({});
+  const contenttype = {empty: {}};
+  const content = root.addCard(contentspec, contenttype);
+  content.generate();
 
-  // tabs
-  const boottabspec = {left: 0, top: 0, width: 100, height: 24};
-  const boottab = tabs.newCard(boottabspec);
-  boottab.render({border: 'right'});
-  const worktabspec = {left: 100, top: 0, width: 100, height: 24};
-  const worktab = tabs.newCard(worktabspec);
-  worktab.render({border: 'right'});
-  const viewtabspec = {left: 200, top: 0, width: 100, height: 24};
-  const viewtab = tabs.newCard(viewtabspec);
-  viewtab.render({border: 'right'});
+  const tabspec = {left: pad, top: margin, width: root.spec.width - pad - margin, height: 24};
+  const tabtype = {controller: {target: content, keys: ['boot', 'viewport', 'workshop']}};
+  const tabs = root.addCard(tabspec, tabtype);
+  tabs.generate();
 
-  // content fill
-  const bootspec = {left: 0, top: 0, width: content.spec.width, height: content.spec.height};
-  const workspec = {left: 0, top: 0, width: content.spec.width, height: content.spec.height};
-  const viewspec = {left: 0, top: 0, width: content.spec.width, height: content.spec.height};
+  const toolspec = {left: margin, top: pad, width: 24, height: root.spec.height - pad - margin};
+  const tooltype = {empty: {border: 'all'}};
+  const tools = root.addCard(toolspec, tooltype);
+  tools.generate();
 
-  const boot = content.newCard(bootspec);
-  const work = content.newCard(workspec);
-  const view = content.newCard(viewspec);
-
-  const bootchildtest = {left: 12, top: 12, width: 120, height: 120};
-  const bootchild = boot.newCard(bootchildtest);
-
-  let target;
-  boottab.action = (context) => (event) => {
-    if (target = content.target) target.save({visible: false});
-    content.target = boot;
-    boot.load({visible: true});
-  }
-  worktab.action = (context) => (event) => {
-    if (target = content.target) target.save({visible: false});
-    content.target = work;
-    work.load({visible: true});
-  }
-  viewtab.action = (context) => (event) => {
-    if (target = content.target) target.save({visible: false});
-    content.target = view;
-    view.load({visible: true});
-  }
+  //makeController(tabs, content, ['boot', 'viewport', 'workspace']);
 }
