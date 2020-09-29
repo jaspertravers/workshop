@@ -1,3 +1,7 @@
+import {putProseMirror} from './utility.js';
+import {putCodeMirror} from './utility.js';
+import {setupEvent} from './events.js';
+
 class Card {
   /**
    * spec: {left, top, width, height}
@@ -6,39 +10,147 @@ class Card {
    *   type:    string  -- indicates card type
    *   content: depends -- used to build a card of type
    */
-  constructor(spec, type) {
+  constructor(spec, type, content=null, visible=true) {
     //serializable
     this.spec = spec;
-    this.type = type; //{type: content}
+    this.type = type;
+    this.content = content;
+    this.visible = visible;
 
     this.parent = null;
     this.children = [];
 
     //generated
     this.node = null;
+    this.view = null;
   }
-  addCard(spec, type) {
-    const card = new Card(spec, type);
+  addCard(spec, type, content=null, visible=true) {
+    const card = new Card(spec, type, content, visible);
     this.children.push (card);
     card.parent = this;
+
+    if (visible) card.generate(); //TODO ??
     return card;
   }
-  layout(func) {
-    //TODO
-    //I'm in the dark on this one...
+  move({dleft, dtop, dwidth, dheight}) {
+    this.spec.left += dleft;
+    this.spec.top += dtop;
+    this.spec.width += dwidth;
+    this.spec.height += dheight;
+
+    this.updateNode();
+  }
+  updateNode() {
+    if (parseInt(this.node.style.left) != this.spec.left) {
+      this.node.style.left = this.spec.left + 'px';
+    }
+    if (parseInt(this.node.style.top) != this.spec.top) {
+      this.node.style.top = this.spec.top + 'px';
+    }
+    if (parseInt(this.node.style.width) != this.spec.width) {
+      this.node.style.width = this.spec.width + 'px';
+    }
+    if (parseInt(this.node.style.height) != this.spec.height) {
+      this.node.style.height = this.spec.height + 'px';
+    }
   }
   generate() {
-    let content;
-    let card;
-    if (content = this.type.empty) {
-      this.buildEmpty(content);
+    let key; //for `switch`
+    this.frame();
+
+    //codemirror
+    if (this.type === 'codemirror') {
+      this.node.style.background = '#fff';
+      this.node.style.border = '1px solid black';
+      this.view = putCodeMirror (this.node, this.content);
     }
-    if (content = this.type.controller) {
-      this.buildEmpty(content);
-      this.buildController(content);
+    //prosemirror
+    if (this.type === 'prosemirror') {
+      this.node.style.background = '#fff';
+      this.node.style.border = '1px solid black';
+      this.view = putProseMirror(this.node, this.content);
     }
-  }
-  buildEmpty(content) {
+    //execute button
+    if (this.type === 'executeButton') {
+      this.node.style.cursor = 'pointer';
+      this.node.style.border = '1px dashed black';
+      this.node.style.background = '#fff';
+      this.node.style.display = 'flex';
+      this.node.style.justifyContent = 'center';
+      this.node.style.fontSize = '1rem';
+      this.node.style.alignItems = 'center';
+      this.node.innerHTML = this.content;
+      this.node.addEventListener('mouseover', (event) => {this.node.style.background = '#eee'});
+      this.node.addEventListener('mouseout', (event) => {this.node.style.background = '#fff'});
+
+      this.node.onclick = (event) => {
+        event.preventDefault();
+        let task = this.parent.view.state.doc.toString();
+        new Function(task)();
+      }
+    }
+    if (this.type === 'container') {
+    }
+    if (this.type === 'container.tabs') {
+      this.node.style.background = '#fff';
+      this.node.style.border = '1px dashed black';
+    }
+    if (this.type === 'tabs.tab') {
+      //style
+      this.node.style.cursor = 'pointer';
+      this.node.style.borderRight = '1px dashed black';
+      this.node.style.background = '#fff';
+      this.node.style.display = 'flex';
+      this.node.style.justifyContent = 'center';
+      this.node.style.fontSize = '1rem';
+      this.node.style.alignItems = 'center';
+      this.node.innerHTML = this.content;
+      this.node.addEventListener('mouseover', (event) => {this.node.style.background = '#eee'});
+      this.node.addEventListener('mouseout', (event) => {this.node.style.background = '#fff'});
+
+      //functionality
+      this.node.onclick = (event) => {
+        event.preventDefault();
+        let container = this.parent.parent;
+        let lastOpen = container.children.find(item =>
+          item.type === 'container.space' && item.content === container.content);
+        let space = container.children.find(item =>
+          item.type === 'container.space' && item.content === this.content);
+        container.content = this.content;
+        lastOpen.save(true);
+        space.load();
+      }
+    }
+    if (this.type === 'container.tools') {
+    }
+    if (this.type === 'tools.icon') {
+      this.node.style.cursor = 'pointer';
+      this.node.style.border= '1px dashed black';
+      this.node.style.background = '#fff';
+      this.node.style.display = 'flex';
+      this.node.style.justifyContent = 'center';
+      this.node.style.fontSize = '1rem';
+      this.node.style.alignItems = 'center';
+      this.node.innerHTML = this.content[0];
+      this.node.addEventListener('mouseover', (event) => {this.node.style.background = '#eee'});
+      this.node.addEventListener('mouseout', (event) => {this.node.style.background = '#fff'});
+
+      this.node.onclick = (event) => {
+        event.preventDefault();
+        let container = this.parent.parent;
+        let space = container.children.find(item =>
+          item.type === 'container.space' && item.content === container.content);
+
+        setupEvent(event, space, this.content);
+      }
+    }
+    if (this.type === 'empty') {
+      this.node.style.background = '#fff';
+    }
+    if (this.type === 'container.space') {
+    }
+  } //end switch
+  frame(content={}) {
     const card = document.createElement('div');
     card.classList.add('card')
     card.style.position = 'absolute';
@@ -46,124 +158,84 @@ class Card {
     card.style.left = this.spec.left + 'px';
     card.style.width = this.spec.width + 'px';
     card.style.height = this.spec.height + 'px';
-
-    if (content.border === 'all') card.style.border = '1px dashed black';
-    if (content.border === 'left') card.style.borderLeft = '1px dashed black';
-    if (content.border === 'top') card.style.borderTop = '1px dashed black';
-    if (content.border === 'right') card.style.borderRight = '1px dashed black';
-    if (content.border === 'bottom') card.style.borderBottom = '1px dashed black';
 
     this.node = card;
     this.parent.node.appendChild(this.node);
     return card;
   }
-  buildController({target, keys}) {
-    // make two cards, one appended to target one a child of this controller
-    let leftoffset = 0;
-    let buttonwidth = 100;
-    let buttons = [];
-    let tabs = [];
-    keys.forEach(k => {
-      let buttonspec = {left: leftoffset, top: 0, width: buttonwidth, height:this.spec.height}
-      let buttontype = {empty: {border: 'all'}}
-      let button = this.addCard(buttonspec, buttontype);
-      button.generate();
-      leftoffset += buttonwidth;
-
-      let tabspec = {left: 0, top: 0, width: target.spec.width, height: target.spec.height}
-      let tabtype = {empty: {}}
-      let tab = target.addCard(tabspec, tabtype);
-
-      button.action = (context) => (event) => {
-        tab.generate();
-      }
-    });
-  }
   set action(func) {
-    //TODO
     this.node.onclick = func(this);
   }
-  save() {
-    this.node.remove();
+  toStorage() {
+    //to be called on root
+    this.save();
+
+    function replacer (key, value) {
+      if (key === 'node') return null;
+      if (key === 'parent') return null; //prevent circular references
+      if (key === 'view') return null;
+      return value;
+    }
+
+    console.log(JSON.stringify(this, replacer))
+    window.localStorage.state = JSON.stringify(this, replacer);
+  }
+  static fromStorage() {
+    //builds a root
+    let state = JSON.parse(window.localStorage.state);
+    let root = new Card(state.spec);
+    root.parent = {node: document.body};
+    root.generate();
+
+    /*
+    state.children.forEach(c => {
+      let card = root.addCard(c.spec, c.type);
+      card.generate();
+    });
+    */
+
+    //node is the object, parent is the Card
+    function recurse(node, parent) {
+      node.children.forEach(c => {
+        let card = parent.addCard(c.spec, c.type, c.content, c.visible);
+        if (card.visible) card.generate();
+
+        if (c.children.length != 0) recurse(c, card);
+      });
+    }
+
+    recurse(state, root)
+
+    return root;
+  }
+  save(visible=null) {
+    if (visible) this.visible = false;
+    if (this.type === 'codemirror' && this.view) this.content = this.view.state.doc.toString();
+    if (this.type === 'prosemirror' && this.view) this.content = JSON.stringify(this.view.state.doc.toJSON());
+
+    if (this.node) this.node.remove();
     this.node = null;
 
-    this.children.forEach(c => c.save());
+    this.children.forEach(c => c.save(visible));
   }
   load() {
-    //TODO
-    //assumes this card and all children have not been loaded
-    //assumes this card exists by having been constructed as a new Card or card.newCard
-
-    this.render();
-
+    this.visible = true;
+    this.generate();
     this.children.forEach(c => c.load());
   }
-}
+  allChildren() {
+    let allchildren = [];
+    function recurse(node) {
+      node.children.forEach(c => {
+        allchildren.push(c);
 
+        if (c.children.length != 0) recurse(c);
+      });
+    }
+
+    recurse(this)
+    return allchildren;
+  }
+}
 //class Kit extends Card {}
-
 export {Card}
-
-class Cardold {
-  constructor(spec) {
-    this.spec = spec;
-    this.parent = null;
-    this.children = [];
-  }
-  build() {
-    const card = document.createElement('div');
-    card.classList.add('card')
-    card.style.position = 'absolute';
-    card.style.top = this.spec.top + 'px';
-    card.style.left = this.spec.left + 'px';
-    card.style.width = this.spec.width + 'px';
-    card.style.height = this.spec.height + 'px';
-    //card.style.background = '#eee'; //DEBUG
-
-    this.node = card;
-    this.contextMenu();
-  }
-  styleBorder() {
-    //temprary method, I like the canvas take from last time.
-    this.node.style.border = '1px dashed #282828'
-  }
-  anchorNew(dx, dy) {
-    //quadrants
-    this.spec.width += dx;
-    this.spec.height += dy;
-    this.node.style.width = parseInt(this.node.style.width) + dx + 'px';
-    this.node.style.height = parseInt(this.node.style.height) + dy + 'px';
-  }
-  newCardFromMouse() {
-    document.body.style.cursor = 'crosshair';
-
-    this.node.onmousedown = (event) => {
-      let defaultspec = {left: event.offsetX, top: event.offsetY, width: 0, height: 0};
-      let newCard = new Card(defaultspec);
-      newCard.build();
-      newCard.styleBorder();
-      this.children.push(newCard);
-      this.node.appendChild(newCard.node);
-      document.body.onmousemove = (event) => {
-        newCard.anchorNew(event.movementX, event.movementY);
-      }
-    }
-    // cleanup
-    document.body.onmouseup = (event) => {
-      document.body.style.cursor = null;
-      this.node.onmousedown = null;
-      document.body.onmousemove = null;
-      document.body.onmouseup = null;
-    }
-  }
-  setProseMirror() {
-    this.view = putProseMirror(this.node);
-  }
-  setCodeMirror() {
-    this.view = putCodeMirror(this.node, Card.toString());
-    //this.view = putCodeMirror(this.node);
-  }
-  save() {
-    return this;
-  }
-}
