@@ -58,19 +58,16 @@ class Card {
     let key; //for `switch`
     this.frame();
 
-    //codemirror
     if (this.type === 'codemirror') {
       this.node.style.background = '#fff';
       this.node.style.border = '1px solid black';
       this.view = putCodeMirror (this.node, this.content);
     }
-    //prosemirror
     if (this.type === 'prosemirror') {
       this.node.style.background = '#fff';
       this.node.style.border = '1px solid black';
       this.view = putProseMirror(this.node, this.content);
     }
-    //execute button
     if (this.type === 'executeButton') {
       this.node.style.cursor = 'pointer';
       this.node.style.border = '1px dashed black';
@@ -150,14 +147,17 @@ class Card {
     if (this.type === 'container.space') {
     }
   } //end switch
-  frame(content={}) {
+  frame() {
     const card = document.createElement('div');
     card.classList.add('card')
-    card.style.position = 'absolute';
-    card.style.top = this.spec.top + 'px';
-    card.style.left = this.spec.left + 'px';
-    card.style.width = this.spec.width + 'px';
-    card.style.height = this.spec.height + 'px';
+    if (this.spec.hasOwnProperty('top')) {
+      card.style.position = 'absolute';
+      card.style.top = this.spec.top + 'px';
+      card.style.left = this.spec.left + 'px';
+      card.style.width = this.spec.width + 'px';
+      card.style.height = this.spec.height + 'px';
+    }
+    //if spec isn't absolute we ignore it at the moment.
 
     this.node = card;
     this.parent.node.appendChild(this.node);

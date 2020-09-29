@@ -31306,19 +31306,16 @@
       generate() {
         this.frame();
 
-        //codemirror
         if (this.type === 'codemirror') {
           this.node.style.background = '#fff';
           this.node.style.border = '1px solid black';
           this.view = putCodeMirror (this.node, this.content);
         }
-        //prosemirror
         if (this.type === 'prosemirror') {
           this.node.style.background = '#fff';
           this.node.style.border = '1px solid black';
           this.view = putProseMirror(this.node, this.content);
         }
-        //execute button
         if (this.type === 'executeButton') {
           this.node.style.cursor = 'pointer';
           this.node.style.border = '1px dashed black';
@@ -31395,14 +31392,17 @@
         }
         if (this.type === 'container.space') ;
       } //end switch
-      frame(content={}) {
+      frame() {
         const card = document.createElement('div');
         card.classList.add('card');
-        card.style.position = 'absolute';
-        card.style.top = this.spec.top + 'px';
-        card.style.left = this.spec.left + 'px';
-        card.style.width = this.spec.width + 'px';
-        card.style.height = this.spec.height + 'px';
+        if (this.spec.hasOwnProperty('top')) {
+          card.style.position = 'absolute';
+          card.style.top = this.spec.top + 'px';
+          card.style.left = this.spec.left + 'px';
+          card.style.width = this.spec.width + 'px';
+          card.style.height = this.spec.height + 'px';
+        }
+        //if spec isn't absolute we ignore it at the moment.
 
         this.node = card;
         this.parent.node.appendChild(this.node);
@@ -31484,18 +31484,47 @@
     }
 
     window.onload = function(event) {
+      const root = new Card({left: 0, top: 0, width: window.innerWidth, height: window.innerHeight});
+      root.parent = {node: document.body}; //special cased root
+      root.generate();
+
+      const bootContainer = root.addCard({left: root.spec.left,
+                                          top: root.spec.top,
+                                          width: root.spec.width - 24,
+                                          height: root.spec.height - 24},
+                                         ''); //nontype
+      bootContainer.node.style.display = 'grid';
+      bootContainer.node.style.gridTemplateColumns = 'repeat(12, minmax(0,1fr))';
+      bootContainer.node.style.gridTemplateRows = 'repeat(12, minmax(0,1fr))';
+      bootContainer.node.style.gridGap = '12px';
+      bootContainer.node.style.margin = '12px';
+
+      const bootBrowser = bootContainer.addCard({}, '');
+      bootBrowser.node.style.gridColumn = '1/3';
+      bootBrowser.node.style.gridRow = '2/13';
+      const bootTabs = bootContainer.addCard({}, '');
+      bootTabs.node.style.gridColumn = '3/8';
+      bootTabs.node.style.gridRow = '1';
+      const bootContent = bootContainer.addCard({}, '');
+      bootContent.node.style.gridColumn = '3/13';
+      bootContent.node.style.gridRow = '2/13';
+
+    };
+
+    /*
+    window.onload = function(event) {
       document.body.style.fontSize = '12px';
 
       let debug = true; //DEBUG
 
       if (window.localStorage.state && !debug) {
-        console.info('local storage read');
+        console.info('local storage read')
         window.root = Card.fromStorage();
         window.Card = Card; //DEBUG
       }
       else {
         // root
-        console.info('no local storage');
+        console.info('no local storage')
         const root = new Card({left: 0, top: 0, width: window.innerWidth, height: window.innerHeight});
         root.parent = {node: document.body}; //special cased root
         root.generate();
@@ -31504,7 +31533,7 @@
         let canvas = document.createElement('canvas');
         root.node.appendChild(canvas);
         canvas.width = root.spec.width;
-        canvas.height = root.spec.height;
+        canvas.height = root.spec.height
         let ctx = canvas.getContext('2d');
 
         ctx.fillStyle = '#ffffff';
@@ -31513,6 +31542,7 @@
         ctx.globalAlpha = 1;
 
         const step = 12;
+        const margin = 2;
 
         function distort() {
           const damper = 2; //2 looks best
@@ -31590,7 +31620,7 @@
                                                 'executeButton',
                                                 'Execute',
                                                 (name === tabLabels[0]));
-        });
+        })
         container.content = tabLabels[0]; //sets the open tab to Boot
 
         const tools = container.addCard({left: pad,
@@ -31612,35 +31642,19 @@
                                    'tools.icon',
                                    name);
           toolOffset += height + 1; //for border
-        });
-
-
-
-        //const codeEditorspec = {left: 12, top: 12, width: 620, height: 800};
-        //const codeEditortype = {codemirror: {content: emptycode}};
-        //const codeEditor = root.addCard(codeEditorspec, codeEditortype);
-        //codeEditor.generate();
-
-        //const execButtonspec = {left: codeEditorspec.width - 100, top: codeEditorspec.height + 12, width: 100, height: 36}
-        //const execButtontype = {executeButton: {content: {}}};
-        //const execButton = codeEditor.addCard(execButtonspec, execButtontype);
-        //execButton.generate();
-
-        //const proseEditorspec = {left: 644, top: 12, width: 580, height: 800};
-        //const proseEditortype = {prosemirror: {content: emptyprose}};
-        //const proseEditor = root.addCard(proseEditorspec, proseEditortype);
-        //proseEditor.generate();
+        })
       }
-    };
 
-    window.onbeforeunload = function (event) {
-      if (root) root.toStorage();
-    };
+      window.onbeforeunload = function (event) {
+        if (root) root.toStorage();
+      }
 
-    window.reset = function() { //DEBUG
-      window.onbeforeunload = null;
-      window.localStorage.clear();
-    };
+      window.reset = function() { //DEBUG
+        window.onbeforeunload = null;
+        window.localStorage.clear();
+      }
+    }
+    */
 
 }());
 //# sourceMappingURL=bundle.js.map

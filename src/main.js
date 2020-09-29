@@ -5,6 +5,35 @@ import {emptyprose, emptycode} from './mirrors/emptymirrors.js'
 
 
 window.onload = function(event) {
+  const root = new Card({left: 0, top: 0, width: window.innerWidth, height: window.innerHeight});
+  root.parent = {node: document.body}; //special cased root
+  root.generate();
+
+  const bootContainer = root.addCard({left: root.spec.left,
+                                      top: root.spec.top,
+                                      width: root.spec.width - 24,
+                                      height: root.spec.height - 24},
+                                     ''); //nontype
+  bootContainer.node.style.display = 'grid';
+  bootContainer.node.style.gridTemplateColumns = 'repeat(12, minmax(0,1fr))';
+  bootContainer.node.style.gridTemplateRows = 'repeat(12, minmax(0,1fr))';
+  bootContainer.node.style.gridGap = '12px';
+  bootContainer.node.style.margin = '12px';
+
+  const bootBrowser = bootContainer.addCard({}, '');
+  bootBrowser.node.style.gridColumn = '1/3';
+  bootBrowser.node.style.gridRow = '2/13';
+  const bootTabs = bootContainer.addCard({}, '');
+  bootTabs.node.style.gridColumn = '3/8';
+  bootTabs.node.style.gridRow = '1';
+  const bootContent = bootContainer.addCard({}, '');
+  bootContent.node.style.gridColumn = '3/13';
+  bootContent.node.style.gridRow = '2/13';
+
+}
+
+/*
+window.onload = function(event) {
   document.body.style.fontSize = '12px';
 
   let debug = true; //DEBUG
@@ -135,31 +164,15 @@ window.onload = function(event) {
                                name);
       toolOffset += height + 1; //for border
     })
+  }
 
+  window.onbeforeunload = function (event) {
+    if (root) root.toStorage();
+  }
 
-
-    //const codeEditorspec = {left: 12, top: 12, width: 620, height: 800};
-    //const codeEditortype = {codemirror: {content: emptycode}};
-    //const codeEditor = root.addCard(codeEditorspec, codeEditortype);
-    //codeEditor.generate();
-
-    //const execButtonspec = {left: codeEditorspec.width - 100, top: codeEditorspec.height + 12, width: 100, height: 36}
-    //const execButtontype = {executeButton: {content: {}}};
-    //const execButton = codeEditor.addCard(execButtonspec, execButtontype);
-    //execButton.generate();
-
-    //const proseEditorspec = {left: 644, top: 12, width: 580, height: 800};
-    //const proseEditortype = {prosemirror: {content: emptyprose}};
-    //const proseEditor = root.addCard(proseEditorspec, proseEditortype);
-    //proseEditor.generate();
+  window.reset = function() { //DEBUG
+    window.onbeforeunload = null;
+    window.localStorage.clear();
   }
 }
-
-window.onbeforeunload = function (event) {
-  if (root) root.toStorage();
-}
-
-window.reset = function() { //DEBUG
-  window.onbeforeunload = null;
-  window.localStorage.clear();
-}
+*/
