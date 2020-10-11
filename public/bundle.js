@@ -37,11 +37,19 @@
         }
       }
     }
-    move(spec) {
+    move(spec, delta=false) {
       //assumes spec only contains subsets of top, left, width, height
-      for (let key in spec) {
-        this.spec[key] = spec[key];
-        this.node.style[key] = `${this.spec[key]}px`;
+      if(!delta) { //absolute move
+        for (let key in spec) {
+          this.spec[key] = spec[key];
+          this.node.style[key] = `${this.spec[key]}px`;
+        }
+      }
+      else { //delta move
+        for (let key in spec) {
+          this.spec[key] += spec[key];
+          this.node.style[key] = `${this.spec[key]}px`;
+        }
       }
     }
     allChildren() {
@@ -31083,176 +31091,6 @@
     return view;
   }
 
-  const dragNewCard = (context) => (event) => {
-    if (event.which != 1) return;
-    const startX = Math.floor(event.offsetX / 12 * 12);
-    const startY = Math.floor(event.offsetY / 12 * 12);
-    const clientX = Math.floor(event.clientX / 12 * 12);
-    const clientY = Math.floor(event.clientY / 12 * 12);
-
-    const card = context.addCard();
-    card.attach({
-      position: 'absolute',
-      left: startX,
-      top: startY,
-      width: 0,
-      height: 0
-    });
-    
-    //TODO below here should be excised
-    card.node.style.background = '#fff'; // debug
-    card.node.style.border = '1px dashed black'; // debug
-
-
-    addContextMenu(card);
-    //move
-    card.node.onmousedown = (event) => {
-      event.stopPropagation();
-      if (event.which === 3) { // rmb
-        document.onmousemove = cardMove(card);
-        document.onmouseup = (event) => {
-          document.body.style.cursor = null;
-          document.onmousemove = null;
-          document.onmouseup = null;
-        };
-      }
-    };
-
-    //TODO above here should be excised
-    document.onmousemove = (event) => {
-      //TODO probably bugs between event.offset/client, can't test atm
-      const dx = event.clientX - clientX;
-      const dy = event.clientY - clientY;
-      document.body.style.cursor = 'crosshair';
-      if (dx > 1 && dy > 1) {
-        move({left: clientX, top: clientY, width: dx, height: dy}, card);
-      }
-      else if (dx < 1 && dy > 1) {
-        move({left: dx + clientX, top: clientY, width: -dx, height: dy}, card);
-      }
-      else if (dx > 1 && dy < 1) {
-        move({left: clientX, top: dy + clientY, width: dx, height: -dy}, card);
-      }
-      else if (dx < 1 && dy < 1) {
-        move({left: dx + clientX, top: dy + clientY, width: -dx, height: -dy}, card);
-      }
-
-    };
-    document.onmouseup = (event) => {
-      document.body.style.cursor = null;
-      document.onmousemove = null;
-      document.onmouseup = null;
-    };
-  };
-
-  const cardMove = (card) => (event) => {
-    //need to determine region then activate that move/resize
-    let xp = (event.clientX - card.spec.top) / card.spec.width;
-    let yp = (event.clientY - card.spec.left) / card.spec.height;
-    let region;
-    let lo = 0.25; // lower bound
-    let hi = 0.75; // higher bound
-    if (xp > lo && xp < hi && yp < lo) region = 'n';
-    if (xp > hi && yp > lo && yp < hi) region = 'e';
-    if (xp < lo && yp > lo && yp < hi) region = 'w';
-    if (xp > lo && xp < hi && yp > hi) region = 's';
-    if (xp <= lo && yp <= lo) region = 'nw';
-    if (xp >= hi && yp <= lo) region = 'ne';
-    if (xp <= lo && yp >= hi) region = 'sw';
-    if (xp >= hi && yp >= hi) region = 'se';
-    if (xp > lo && xp < hi && yp > lo && yp < hi) region = 'mid';
-
-    const dx = event.clientX - clientX;
-    const dy = event.clientY - clientY;
-
-    if (region === 'mid') {
-      document.body.style.cursor = 'move';
-      move({left: dx + clientX, top: dy + clientY, width: -dx, height: -dy}, card);
-    }
-  };
-
-  function move(moveset, card) {
-    //TODO fix jump in negative directions
-    for (let key in moveset) {
-      let value = moveset[key];
-      if (value >=0) {
-        moveset[key] = Math.floor(value / 12) * 12 + (value % 12 <= 6 ? 0 : 12);
-      }
-      else { //value less than 0
-        moveset[key] = (Math.floor(value / 12) + 1) * 12 + (value % 12 <= 6 ? 0 : 12);
-      }
-    }
-    card.move(moveset);
-  }
-
-  function addContextMenu(card) {
-    card.node.oncontextmenu = (event) => {
-      event.preventDefault();
-
-      const menu = document.createElement('div');
-      document.body.appendChild(menu);
-      menu.style.position = 'absolute';
-      menu.style.left = event.clientX + 'px';
-      menu.style.top = event.clientY + 'px';
-      menu.style.borderTop = '1px dashed black';
-      menu.style.borderLeft = '1px dashed black';
-      menu.style.borderRight = '1px dashed black';
-
-      menu.onmouseout = (evt) => { //make it so that any click anywhere else removes this. not mouseout
-        if (!menu.contains(evt.relatedTarget)) {
-          menu.remove();
-        }
-      };
-
-      function addButton(type, func) {
-        const button = document.createElement('div');
-        button.innerHTML = type;
-        button.style.width = '100% - 1rem';
-        button.style.minHeight = '1.8rem';
-        button.style.paddingLeft = '1rem';
-        button.style.paddingRight = '1rem';
-        button.style.borderBottom = '1px dashed black';
-        button.style.display = 'flex';
-        button.style.alignItems = 'center';
-        button.style.cursor = 'pointer';
-        button.style.background = '#fff';
-
-        button.onmouseover = (event) => {button.style.background = '#eee';};
-        button.onmouseout = (event) => {button.style.background = '#fff';};
-
-        button.onclick = (event) => {
-          card.type = type;
-          menu.remove();
-          func(card);
-        };
-        menu.appendChild(button);
-      }
-
-      if(!card.type) {
-        addButton('prosemirror', setProseMirror);
-        addButton('codemirror', setCodeMirror);
-        addButton('remove', removeCard);
-      }
-      if(card.type) {
-        addButton('remove', removeCard);
-      }
-    };
-  }
-  function removeCard(card) {
-    card.parent.children = card.parent.children.filter(c => c.node != card.node);
-    card.node.remove();
-  }
-  function setProseMirror(card) {
-    card.node.style.background = '#fff';
-    card.node.style.border = '1px solid black';
-    card.view = putProseMirror(card.node, card.content);
-  }
-  function setCodeMirror(card) {
-    card.node.style.background = '#fff';
-    card.node.style.border = '1px solid black';
-    card.view = putCodeMirror (card.node, card.content);
-  }
-
   // this is disgustingly inefficient
   function styleGrid(card) {
     //grid
@@ -31294,6 +31132,347 @@
     }
   }
 
+  function styleEmpty(card) {
+    card.node.style.background = '#fff';
+    card.node.style.border = '1px dashed black';
+  }
+
+  let fschema = {set: function(obj, prop, value) {
+    obj[prop] = {f: value, label: '', targetType: '', setType: null};
+    return true;
+  }};
+  let cardTypes = new Proxy({}, fschema);
+
+  cardTypes.removeCard = function(card) {
+    card.parent.children = card.parent.children.filter(c => c.node != card.node);
+    card.node.remove();
+  };
+  cardTypes.removeCard.label = 'remove';
+  cardTypes.removeCard.targetType = 'all';
+  cardTypes.setProseMirror = function(card) {
+    card.node.style.background = '#fff';
+    card.node.style.border = '1px solid black';
+    card.view = putProseMirror(card.node, card.content);
+  };
+  cardTypes.setProseMirror.label = 'prosemirror';
+  cardTypes.setProseMirror.targetType = 'empty';
+  cardTypes.setProseMirror.setType = 'prosemirror';
+  cardTypes.setCodeMirror = function(card) {
+    card.node.style.background = '#fff';
+    card.node.style.border = '1px solid black';
+    card.view = putCodeMirror (card.node, card.content);
+  };
+  cardTypes.setCodeMirror.label = 'codemirror';
+  cardTypes.setCodeMirror.targetType = 'empty';
+  cardTypes.setCodeMirror.setType = 'codemirror';
+  cardTypes.runCodeMirror = function(card) {
+    let task = card.view.state.doc.toString();
+    new Function(task)();
+  };
+  cardTypes.runCodeMirror.label = 'run';
+  cardTypes.runCodeMirror.targetType = 'codemirror';
+  function initContainer(card) {
+    //root
+    //effects:
+    //card onmousedown set
+
+    let newCard = null;
+    let dx = 0; //minimum 12x12
+    let dy = 0;
+    let startX = null;
+    let startY = null;
+
+    card.node.onmousedown = onMouseDown;
+    card.node.oncontextmenu = (event) => event.preventDefault();
+
+    function onMouseDown(event) {
+      if (event.which === 1) {
+        if (event.ctrlKey) {
+          //New Card
+          startX = Math.floor(event.clientX / 12) * 12;
+          startY = Math.floor(event.clientY / 12) * 12;
+          let left = Math.floor(event.offsetX / 12) * 12;
+          let top = Math.floor(event.offsetY / 12) * 12;
+
+          newCard = card.addCard();
+          newCard.attach({position: 'absolute', 
+            left, top, width: 12, height: 12});
+          initCard(newCard);
+          document.onmousemove = onMouseMove;
+        }
+      }
+      if (event.which === 3) ; //no designation
+      document.onmouseup = onMouseUp; //end
+    }
+    function onMouseMove(event) {
+      dx += event.movementX;
+      dy += event.movementY;
+
+      let changeX = 0;
+      let changeY = 0;
+      if (dx > 9) {
+        let value = Math.ceil(dx / 12) * 12;
+        changeX = value;
+        dx -= value;
+      }
+      else if (dx < -9) {
+        let value = Math.floor(dx / 12) * 12;
+        changeX = value;
+        dx -= value;
+      }
+      if (dy > 9) {
+        let value = Math.ceil(dy / 12) * 12;
+        changeY = value;
+        dy -= value;
+      }
+      else if (dy < -9) {
+        let value = Math.floor(dy / 12) * 12;
+        changeY = value;
+        dy -= value;
+      }
+
+      //TODO fix lossly anchor corner
+      if (event.clientX > startX && event.clientY > startY) {
+        //quadrant = 'SE'
+        newCard.move({width: changeX, height: changeY}, true);
+      }
+      if (event.clientX < startX && event.clientY > startY) {
+        //quadrant = 'SW'
+        newCard.move({left: changeX, width: -changeX, height: changeY}, true);
+      }
+      if (event.clientX > startX && event.clientY < startY) {
+        //quadrant = 'NE'
+        newCard.move({top: changeY, width: changeX, height: -changeY}, true);
+      }
+      if (event.clientX < startX && event.clientY < startY) {
+        //quadrant = 'NW'
+        newCard.move({left: changeX, top: changeY, width: -changeX, height: -changeY}, true);
+      }
+    }
+    function onMouseUp(event) {
+      newCard = null;
+      dx = 0; dy = 0;
+      document.onmousemove = null;
+      document.onmouseup = null;
+    }
+  }
+  function initCard(card) {
+    styleEmpty(card);
+    let startX;
+    let startY;
+    let offsetX;
+    let offsetY;
+    let dx = 0;
+    let dy = 0;
+    let region;
+
+    card.type = 'empty';
+
+    card.node.onmousedown = onMouseDown;
+    card.node.oncontextmenu = (event) => event.preventDefault();
+
+    function onMouseDown(event) {
+      startX = event.clientX;
+      startY = event.clientY;
+      offsetX = event.offsetX;
+      offsetY = event.offsetY;
+      if (event.which === 1) ; //no designation
+      if (event.which === 3) {
+        region = determineRegion();
+        //if drag vs contextmenu?
+        //contextmenu:
+        card.node.onmouseup = cardOnMouseUp;
+        //drag:
+        document.onmousemove = onMouseMove;
+      }
+      document.onmouseup = onMouseUp; //end
+    }
+    function cardOnMouseUp(event) {
+      if (startX === event.clientX && startY === event.clientY) {
+        addContextMenu(card, event);
+      }
+      card.node.onmouseup = null;
+    }
+    function onMouseMove(event) {
+      dx += event.movementX;
+      dy += event.movementY;
+
+      let changeX = 0;
+      let changeY = 0;
+      if (dx > 9) {
+        let value = Math.ceil(dx / 12) * 12;
+        changeX = value;
+        dx -= value;
+      }
+      else if (dx < -9) {
+        let value = Math.floor(dx / 12) * 12;
+        changeX = value;
+        dx -= value;
+      }
+      if (dy > 9) {
+        let value = Math.ceil(dy / 12) * 12;
+        changeY = value;
+        dy -= value;
+      }
+      else if (dy < -9) {
+        let value = Math.floor(dy / 12) * 12;
+        changeY = value;
+        dy -= value;
+      }
+
+      if (region === 'NW') {
+        card.move({left: changeX, top: changeY, width: -changeX, height: -changeY}, true);
+      }
+      else if (region === 'NE') {
+        card.move({left: 0, top: changeY, width: changeX, height: -changeY}, true);
+      }
+      else if (region === 'SE') {
+        card.move({left: 0, top: 0, width: changeX, height: changeY}, true);
+      }
+      else if (region === 'SW') {
+        card.move({left: changeX, top: 0, width: -changeX, height: changeY}, true);
+      }
+      else if (region === 'N') {
+        card.move({left: 0, top: changeY, width: 0, height: -changeY}, true);
+      }
+      else if (region === 'E') {
+        card.move({left: 0, top: 0, width: changeX, height: 0}, true);
+      }
+      else if (region === 'S') {
+        card.move({left: 0, top: 0, width: 0, height: changeY}, true);
+      }
+      else if (region === 'W') {
+        card.move({left: changeX, top: 0, width: -changeX, height: 0}, true);
+      }
+      else { //move
+        card.move({left: changeX, top: changeY}, true);
+      }
+    }
+    function determineRegion() {
+      let lowerX = card.spec.width * 0.25;
+      let higherX = card.spec.width * 0.75;
+      let lowerY = card.spec.height * 0.25;
+      let higherY = card.spec.height * 0.75;
+
+      if (offsetX <= lowerX && offsetY <= lowerY) { return 'NW'; }
+      else if (offsetX >= higherX && offsetY <= lowerY) {
+        return 'NE';
+      }
+      else if (offsetX >= higherX && offsetY >= higherY) {
+        return 'SE';
+      }
+      else if (offsetX <= lowerX && offsetY >= higherY) {
+        return 'SW';
+      }
+      else if (offsetX > lowerX && offsetX < higherX && offsetY < lowerY) {
+        return 'N';
+      }
+      else if (offsetX > higherX && offsetY > lowerY && offsetY < higherY) {
+        return 'E';
+      }
+      else if (offsetX > lowerX && offsetX < higherX && offsetY > higherY) {
+        return 'S';
+      }
+      else if (offsetX < lowerX && offsetY > lowerY && offsetY < higherY) {
+        return 'W';
+      }
+      else {
+        return 'move';
+      }
+    }
+    function onMouseUp(event) {
+      region = null;
+      document.onmousemove = null;
+      document.onmouseup = null;
+    }
+  }
+  function addContextMenu(card, event) {
+    const menu = document.createElement('div');
+    document.body.appendChild(menu);
+    menu.style.position = 'absolute';
+    menu.style.left = event.clientX + 'px';
+    menu.style.top = event.clientY + 'px';
+    menu.style.borderTop = '1px dashed black';
+    menu.style.borderLeft = '1px dashed black';
+    menu.style.borderRight = '1px dashed black';
+
+    document.body.addEventListener('click', removeMenu);
+    document.body.addEventListener('contextmenu', removeMenu);
+    function removeMenu(event) {
+      document.body.removeEventListener('click', removeMenu);
+      document.body.removeEventListener('contextmenu', removeMenu);
+      menu.remove();
+    }
+
+    function addButton(funcobj) {
+      const button = document.createElement('div');
+      button.innerHTML = funcobj.label;
+      button.style.minHeight = '1.8rem';
+      button.style.paddingLeft = '1rem';
+      button.style.paddingRight = '1rem';
+      button.style.borderBottom = '1px dashed black';
+      button.style.display = 'flex';
+      button.style.alignItems = 'center';
+      button.style.cursor = 'pointer';
+      button.style.background = '#fff';
+
+      button.onmouseover = (event) => {button.style.background = '#eee';};
+      button.onmouseout = (event) => {button.style.background = '#fff';};
+
+      button.onclick = (event) => {
+        if (funcobj.setType) card.type = funcobj.setType;
+        menu.remove();
+        funcobj.f(card);
+      };
+      menu.appendChild(button);
+    }
+
+    for (let key in cardTypes) {
+      let funcobj = cardTypes[key]; //proxy intricacies; key is the name not the value
+      if(card.type === funcobj.targetType || funcobj.targetType === 'all') {
+        addButton(funcobj);
+      }
+    }
+  }
+
+  function setRelate (card) {
+    const div = document.createElement('div');
+    card.node.appendChild(div);
+    div.style.width = '100%';
+    div.style.height = '100%';
+
+    buildList();
+
+    function buildList() {
+      const list = document.createElement('div');
+      list.style.width = 'min-content';
+      div.appendChild(list);
+
+      root.children.forEach(c => {
+        buildItem(c, list);
+      });
+    }
+    function buildItem(card, list) {
+      const item = document.createElement('div');
+      item.innerHTML = card.type;
+      item.style.minHeight = '1.8rem';
+      item.style.paddingLeft = '1rem';
+      item.style.paddingRight = '1rem';
+      item.style.marginTop = '0.2rem';
+      item.style.marginLeft = '0.2rem';
+      item.style.border= '1px dashed black';
+      item.style.display = 'flex';
+      item.style.alignItems = 'center';
+      item.style.cursor = 'pointer';
+      item.style.background = '#fff';
+
+      item.onmouseover = (event) => {item.style.background = '#eee';};
+      item.onmouseout = (event) => {item.style.background = '#fff';};
+
+      list.appendChild(item);
+    }
+  }
+
   window.onload = onLoad;
 
   function onLoad(event) {
@@ -31303,6 +31482,13 @@
   function buildRoot() {
     //document.body.style.fontSize = '12px';
     document.body.style.overflow = 'hidden';
+
+    window.cardTypes = cardTypes;
+    cardTypes.setRelate = setRelate;
+    cardTypes.setRelate.label = 'relate';
+    cardTypes.setRelate.targetType = 'empty';
+    cardTypes.setRelate.setType = 'relate';
+
     window.root = new Card();
     root.parent = {node: document.body}; // forces data structure integrity
     root.attach({
@@ -31312,10 +31498,11 @@
       width: window.innerWidth,
       height: window.innerHeight
     });
+
     root.type = 'container';
     styleGrid(root);
 
-    root.node.onmousedown = dragNewCard(root);
+    initContainer(root);
 
     return root;
   }

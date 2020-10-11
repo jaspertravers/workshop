@@ -34,11 +34,19 @@ class Card {
       }
     }
   }
-  move(spec) {
+  move(spec, delta=false) {
     //assumes spec only contains subsets of top, left, width, height
-    for (let key in spec) {
-      this.spec[key] = spec[key];
-      this.node.style[key] = `${this.spec[key]}px`;
+    if(!delta) { //absolute move
+      for (let key in spec) {
+        this.spec[key] = spec[key];
+        this.node.style[key] = `${this.spec[key]}px`;
+      }
+    }
+    else { //delta move
+      for (let key in spec) {
+        this.spec[key] += spec[key];
+        this.node.style[key] = `${this.spec[key]}px`;
+      }
     }
   }
   allChildren() {

@@ -40,4 +40,10 @@ function styleGrid(card) {
   }
 }
 
+function styleEmpty(card) {
+  card.node.style.background = '#fff';
+  card.node.style.border = '1px dashed black';
+}
+
 export {styleGrid}
+export {styleEmpty}
