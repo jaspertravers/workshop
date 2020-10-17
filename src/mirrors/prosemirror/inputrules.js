@@ -68,6 +68,10 @@ export function underlineRule(nodeType) {
   return markInputRule(/_(\S(?:|.*?\S))_$/, nodeType)
 }
 
+export function codeRule(nodeType) {
+  return markInputRule(/\`(\S(?:|.*?\S))\`$/, nodeType)
+}
+
 // : (Schema) → Plugin
 // A set of input rules for creating the basic block quotes, lists,
 // code blocks, and heading.
@@ -81,5 +85,7 @@ export function buildInputRules(schema) {
 
   if (type = schema.marks.strong) rules.push(strongRule(type))
   if (type = schema.marks.em) rules.push(emphasisRule(type))
+  //if (type = schema.marks.underline) rules.push(underlineRule(type))
+  if (type = schema.marks.code) rules.push(codeRule(type))
   return inputRules({rules})
 }

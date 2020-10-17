@@ -2,40 +2,46 @@ import {putProseMirror} from './mirrors/mirrors.js'
 import {putCodeMirror} from './mirrors/mirrors.js'
 import {styleEmpty} from './styles.js'
 
-let fschema = {set: function(obj, prop, value) {
-  obj[prop] = {f: value, label: '', targetType: '', setType: null};
-  return true;
-}}
-let cardTypes = new Proxy({}, fschema);
+let cardTypes = new Map();
 
-cardTypes.removeCard = function(card) {
+function removeCard(card) {
+  window.state.delete(card.id);
   card.parent.children = card.parent.children.filter(c => c.node != card.node);
   card.node.remove();
 }
-cardTypes.removeCard.label = 'remove';
-cardTypes.removeCard.targetType = 'all';
-cardTypes.setProseMirror = function(card) {
+function setProseMirror(card) {
   card.node.style.background = '#fff';
   card.node.style.border = '1px solid black';
   card.view = putProseMirror(card.node, card.content);
+  card.node.addEventListener('keyup', savepm);
+  function savepm(event) {
+    card.content = card.view.state.doc.toJSON();
+  }
 }
-cardTypes.setProseMirror.label = 'prosemirror';
-cardTypes.setProseMirror.targetType = 'empty';
-cardTypes.setProseMirror.setType = 'prosemirror';
-cardTypes.setCodeMirror = function(card) {
+function setCodeMirror(card) {
   card.node.style.background = '#fff';
   card.node.style.border = '1px solid black';
   card.view = putCodeMirror (card.node, card.content);
+  card.node.addEventListener('keyup', savecm);
+  function savecm(event) {
+    card.content = card.view.state.doc.toString();
+  }
 }
-cardTypes.setCodeMirror.label = 'codemirror';
-cardTypes.setCodeMirror.targetType = 'empty';
-cardTypes.setCodeMirror.setType = 'codemirror';
-cardTypes.runCodeMirror = function(card) {
+function runCodeMirror(card) {
   let task = card.view.state.doc.toString();
   new Function(task)();
 }
-cardTypes.runCodeMirror.label = 'run';
-cardTypes.runCodeMirror.targetType = 'codemirror';
+function setCustom(card) {
+  card.node.style.background = '#fff';
+  card.node.style.border = '1px solid black';
+}
+
+cardTypes.set('prosemirror', {f: setProseMirror, fromType: 'empty', toType: 'prosemirror'});
+cardTypes.set('codemirror', {f: setCodeMirror, fromType: 'empty', toType: 'codemirror'});
+cardTypes.set('run', {f: runCodeMirror, fromType: 'codemirror'});
+cardTypes.set('custom', {f: setCustom, fromType: 'empty', toType: 'custom'});
+cardTypes.set('remove', {f: removeCard, fromType: 'all'});
+
 function initContainer(card) {
   //root
   //effects:
@@ -62,6 +68,7 @@ function initContainer(card) {
         newCard = card.addCard();
         newCard.attach({position: 'absolute', 
           left, top, width: 12, height: 12});
+        newCard.type = 'empty';
         initCard(newCard);
         document.onmousemove = onMouseMove;
       }
@@ -122,7 +129,12 @@ function initContainer(card) {
   }
 }
 function initCard(card) {
-  styleEmpty(card);
+  if(card.type === 'empty') {
+    styleEmpty(card);
+  }
+  else if (card.type) {
+    cardTypes.get(card.type)?.f(card);
+  }
   let startX;
   let startY;
   let offsetX;
@@ -130,8 +142,6 @@ function initCard(card) {
   let dx = 0;
   let dy = 0;
   let region;
-
-  card.type = 'empty';
 
   card.node.onmousedown = onMouseDown;
   card.node.oncontextmenu = (event) => event.preventDefault();
@@ -218,27 +228,30 @@ function initCard(card) {
     let higherX = card.spec.width * 0.75;
     let lowerY = card.spec.height * 0.25;
     let higherY = card.spec.height * 0.75;
+    
+    let xval = startX - card.spec.left;
+    let yval = startY - card.spec.top;
 
-    if (offsetX <= lowerX && offsetY <= lowerY) { return 'NW'; }
-    else if (offsetX >= higherX && offsetY <= lowerY) {
+    if (xval <= lowerX && yval <= lowerY) { return 'NW'; }
+    else if (xval >= higherX && yval <= lowerY) {
       return 'NE';
     }
-    else if (offsetX >= higherX && offsetY >= higherY) {
+    else if (xval >= higherX && yval >= higherY) {
       return 'SE';
     }
-    else if (offsetX <= lowerX && offsetY >= higherY) {
+    else if (xval <= lowerX && yval >= higherY) {
       return 'SW';
     }
-    else if (offsetX > lowerX && offsetX < higherX && offsetY < lowerY) {
+    else if (xval > lowerX && xval < higherX && yval < lowerY) {
       return 'N';
     }
-    else if (offsetX > higherX && offsetY > lowerY && offsetY < higherY) {
+    else if (xval > higherX && yval > lowerY && yval < higherY) {
       return 'E';
     }
-    else if (offsetX > lowerX && offsetX < higherX && offsetY > higherY) {
+    else if (xval > lowerX && xval < higherX && yval > higherY) {
       return 'S';
     }
-    else if (offsetX < lowerX && offsetY > lowerY && offsetY < higherY) {
+    else if (xval < lowerX && yval > lowerY && yval < higherY) {
       return 'W';
     }
     else {
@@ -269,9 +282,10 @@ function addContextMenu(card, event) {
     menu.remove();
   }
 
-  function addButton(funcobj) {
+  function addButton(pair) {
+    const [label, def] = pair;
     const button = document.createElement('div');
-    button.innerHTML = funcobj.label;
+    button.innerHTML = label;
     button.style.minHeight = '1.8rem';
     button.style.paddingLeft = '1rem';
     button.style.paddingRight = '1rem';
@@ -285,17 +299,17 @@ function addContextMenu(card, event) {
     button.onmouseout = (event) => {button.style.background = '#fff'}
 
     button.onclick = (event) => {
-      if (funcobj.setType) card.type = funcobj.setType;
+      if (def.toType) card.type = def.toType;
       menu.remove();
-      funcobj.f(card);
+      def.f(card);
     }
     menu.appendChild(button);
   }
 
-  for (let key in cardTypes) {
-    let funcobj = cardTypes[key]; //proxy intricacies; key is the name not the value
-    if(card.type === funcobj.targetType || funcobj.targetType === 'all') {
-      addButton(funcobj);
+  for (let pair of cardTypes) {
+    const [label, def] = pair;
+    if(card.type === def.fromType || def.fromType === 'all') {
+      addButton(pair);
     }
   }
 }

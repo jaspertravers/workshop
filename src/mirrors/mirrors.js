@@ -23,7 +23,7 @@ function putCodeMirror(parent, doc=emptycode) {
 
 function putProseMirror(parent, docObj=emptyprose) {
   if (docObj === null) docObj = emptyprose; //TODO this is bad code
-  let doc = pmSchema.nodeFromJSON(JSON.parse(docObj));
+  let doc = pmSchema.nodeFromJSON(typeof docObj === 'string' ? JSON.parse(docObj) : docObj);
 
   let view = new pmEditorView(parent, {
     state: pmEditorState.create({

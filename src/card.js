@@ -1,9 +1,12 @@
 class Card {
-  constructor() {
+  constructor(id=null) {
     // serializable
     this.type = null;
     this.content = null;
-    this.tags = [];
+    this.tags = []; //stores context designation
+    this.source = ''; //stores code
+    this.autorun = false; //if true runs this.source on boot
+    this.id = id || (window.root ? root.counter++ : 0); //handles assigning root id
     // data structure
     this.parent = null;
     this.children = [];
@@ -14,9 +17,10 @@ class Card {
       event.stopPropagation();
     }
     this.view = null;
+    window.state.set(this.id, this);
   }
-  addCard() {
-    const card = new Card();
+  addCard(id=null) {
+    const card = new Card(id);
     this.children.push (card);
     card.parent = this;
 
