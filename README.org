@@ -1,38 +1,38 @@
 #+TITLE: Workshop
 #+AUTHOR: Jasper Travers
-** Design
-This "Workshop" project is the culmination of 3+ years of active interest in programming tools which has been a slowly growing interest of mine since I started programming for the first time in the experimental bridge education program SPIS the summer before my freshman year at UCSD.
 
-The beginning of a deeper engagement with my digital experience was using linux as my daily driver and eventually finding tiling window managers, and took on it's first manifestation with a project in the Interaction Design class taught by Philip Guo. In my second year, after 4 core programming classes (about roughly 120hrs of lecture and 480hrs of lab work) as motivation, my partners and I built a live coding teaching tool for simultaneously allowing the instructor to broadcast code, whether by live coding or prepared files, and allowing the student to edit and probe that code in real time locally without losing the context of the lesson. This was achieved in a structured design process: needfinding, experience design, paper prototying, mockups, implementation, user studies, A/B testing. The solution we came up with took on the novel-to-us form of having more than one editor on the screen at once. This wasn't multiple tabs with multiple terminals in an IDE, it was two separate contexts with two separate execution controls. The instructor broadcast the lesson context and the student manipulated their own local space for reflecting on the lesson. It was validating, in the year or so following our project, to see Atom and VSCode each launch remote pair programming plugins on the same day.
+This project is the third part in a multiyear exploration of programming tools. I have parallel pursuits at different levels of the stack focusing on OS interactions (tiling wms) and programmer ergonomics (fliesystem watchers), here we will focus on what I like to think of broadly as "digital" tools. These projects have grown into the domain of the digital medium and involve collaboration, media and computation. The ultimate problem of the digital medium is of context. How are things accessed and related? How are static assets and compute made available? How are many more than one screen's worth of content displayed on one screen, or three screens? Human computer interaction design is the practice of unifying information architecture with an invisible periphery structure through which a human navigates a simulation interface.
 
-While we succeeded in deploying and having a fully functional base set of interactions on the site credit to some outstanding effort by John, the project was quickly taken offline but inspired me to continue thinking and working on programming environments. The next project taking the form of a creative coding environment which was a direct result of the success we saw with the multiple editor affordances of this first project.
+The first part was the result of an interaction design class project about education. We set out to study and improve computer science class lectures. The design we found was a dual editor live coding environment. We positioned instructor code alongside a local environment on each students laptop such that they could run class code in the instruction environment as well as modify, test and ask questions of a local environment simultaneously. The project mostly focused on the domain of large lectures, but also found relevance in small coding groups as well as pair programming. It was validating, a year later, to see Atom and VSCode simultaneously release pair programming tooling.
 
-Spending so much time in the design lab let me steep in the creative process going on in the social sciences side of the lab which led me to explore parallel design in coding. As these things always seem to go, it was only after months of hacking away with a few friends did I realize how relevant the work going on around me at UCSD was to this exploration. Scott Klemmer and Steven Dow have a history of awesome experiments on Parallel Design and multi-modal software development and I only wish I had more time to reflect and build upon what I learned from their history. Adam Rule, as a small part of his larger work, released a code organizational feature for Jupyter which helped me realize the space of possibilities for designing this parallel functionality. Jim Hollan has Pad++, but we're not there yet.
+The second part was an experiment turned research project of a creative coding environment making explicit parallel design funcitonality. Features included an inline canvas, execution control and parallel design controls. I extended the computational notebook style column of cells towards creative coding. An experimental execution control environment provided an escape hatch to logical errors in code: a solution to longstanding issues in creative coding education running back to the beginnings of p5js. The experimental controls allowed exploring alternatives in real time coding sessions, allowing cells to be duplicated in place without losing past context. The repo is available at [https://www.github.com/jaspertravers/codeshop](https://www.github.com/jaspertravers/codeshop) .
 
-The second iteration of the programming environment project was a creative coding environment laid out as a more compact computational notebook. We built the same concept of a column of cells, but with canvas output in the same block. Then the fun part came with the parallel design cell manipulations. It really came down to a single button of duplicating an existing cell to flesh out almost the same, but different ideas during the creative coding process. There are an endless set of features I want to add to that work including so many quality of life improvements, but the feel of working on an open ended project affording just that workflow alone was great. My partner and I took this project into Scott Klemmer's Interaction Design Research class and fleshed it out and turned it into a pilot study where we had hilariously bad results, but an altogether rewarding learning experience. Note to self: trying to even aproach a (first!) research project of a technical creative system in 10 weeks is much, much too short a time.
+This workshop project is the latest iteration. Breaking out of the computational notebook single column, workshop is a canvas based programming environment. Inspired by functionality developed by other CAD communities and applying it to programming, as well as realizing small parts of the long history of research in personal computing. There are numerous infinite canvas based programming environments, all of which inspired this exploration. One of the key design goals was to step past intermediate configuration, right to the code itself. Many iterations of workshop were a small file which simply bound an execute functionality to a keybind or button and utilized localStorage to provide interface end user programming. Various results include custom creative coding environments, custom widget control to interface functionality and rapid prototyping of presentation content. Workshop is an attempt at fusing Ward Cunningham's all encompasing "card" metaphor with Ivan Sutherland's initial realization of OOP as control of the entire application.
 
-"Workshop" is the third iteration of this theme. Throughout the various (badly named) commits are a variety of explorations of infinite canvas end user programming. Taking Ward Cunningham's realization about the Card as the unit of the wiki and Ivan Sutherland's Object Oriented Sketchpad as inspiration this was an experiment of creating a nestable card to carry any and all digital content. The card is manipulatable with the mouse: creating, resizing, selecting, deleting. The "primitives" that the system "ships with" for card content are a prose and code editor from Marijn Haverbeke, ProseMirror and CodeMirror as well as a canvas and a (still working on it) object browser. The environment is then about creating new card types and filling them with whatever digital content the user likes. Taking advantage of the browser as the ultimate platform. In this environment I have created gui controls for system interactions and mocked up a canvas based featureful PDF reader in about two minutes. I can feel that the move from simply mocking up a UI with cards to assigning those cards listeners and building a cohesive custom GUI on the fly is just on the edge of my ability. Iframes with editors with canvas with dynamic content and persistent or temporary on-the-fly end user programmed interactions are just so fun.
-
-
-
-This is a fun story to tell and still with many holes and poor writing, but I'll work on it.
+These projects span three years of my time at UCSD and a part of my summer in lockdown after graduation. I owe so much to the experience of being around the CSE deparment and the Design Lab and being exposed to so much of the prior art by professors who took an interest in me. There is still so much I have missed and so much more I want to do.
 
 - Jasper
 
-Communication, computation, work.
-(todo: compile the disparate design docs)
 
 ---
 
-What follows is a short time working-dashboard I used during development, it is without explanation and meant to be read and used in emacs org mode. It does contain the build setup for the project and links to dependencies. You can run this by cloning the repo and running.
+** Design
+
+Communication, computation, work.
+
+What follows is a short time working-dashboard I used during development, it is without explanation and meant to be used in emacs org mode. It does contain the build setup for the project and links to dependencies. You can run this by cloning the repo and running.
+
+The majority of the thinking and prototyping work was 'dogfooded' and took place within various prototypes of Workshop itself, as the first complete functionality was manipulating cards and editors.
+
 #+BEGIN_SRC javascript
 npm install
 npm run dev
 #+END_SRC
 
 Two older versions are online at these links. They lack instructions and content. This repo will be deployed soon with at least some small instructions.
-https://github.com/jaspertravers/workshop
-https://github.com/jaspertravers/workshop2
+
+- https://github.com/jaspertravers/workshop
+- https://github.com/jaspertravers/workshop2
 
 
 ** Dependencies
