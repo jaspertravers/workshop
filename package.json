@@ -21,6 +21,7 @@
   "homepage": "https://github.com/jaspertravers/workshop#readme",
   "dependencies": {
     "@codemirror/next": "^0.12.0",
+    "@observablehq/inspector": "^3.2.1",
     "@stopify/stopify": "^0.7.2",
     "prosemirror-commands": "^1.1.4",
     "prosemirror-dropcursor": "^1.3.2",

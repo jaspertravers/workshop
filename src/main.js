@@ -1,70 +1,77 @@
-import {Card} from './card.js'
-import {initContainer} from './utility.js'
-import {initCard} from './utility.js'
-import {cardTypes} from './utility.js'
-import {styleGrid} from './styles.js'
+import { Card } from "./card.js";
+import { initContainer } from "./utility.js";
+import { initCard } from "./utility.js";
+import { cardTypes } from "./utility.js";
+import { styleGrid } from "./styles.js";
+import { defaultState } from "./state.js";
 
 window.onload = onLoad;
 
 function onLoad(event) {
   //document.body.style.fontSize = '12px';
-  document.body.style.overflow = 'hidden';
+  document.body.style.overflow = "hidden";
 
   window.state = new Map();
   window.Card = Card;
   window.cardTypes = cardTypes;
 
   if (window.localStorage.state) {
-    window.root = fromStorage();
+    window.root = fromStorage(window.localStorage.state);
+  } else {
+    window.root = fromStorage(defaultState);
+    //window.root = buildRoot();
   }
-  else {
-    window.root = buildRoot();
-  }
-  ///
   window.onbeforeunload = function (event) {
     if (window.root) toStorage(window.root);
-  }
+  };
 
-  window.reset = function() { //DEBUG
+  window.reset = function () {
+    //DEBUG
     window.onbeforeunload = null;
     window.localStorage.clear();
-  }
+  };
 
   //storage interface
 
   function toStorage(root) {
     //to be called on root
 
-    function replacer (key, value) {
-      if (key === 'node') return null;
-      if (key === 'parent') return null; //prevent circular references
-      if (key === 'view') return null;
+    function replacer(key, value) {
+      if (key === "node") return null;
+      if (key === "parent") return null; //prevent circular references
+      if (key === "view") return null;
       return value;
     }
     window.localStorage.state = JSON.stringify(root, replacer);
   }
-  function fromStorage() {
-    let json = JSON.parse(window.localStorage.state);
+  function fromStorage(storage, parse) {
+    let json;
+    if (parse) {
+      json = JSON.parse(storage);
+    } else {
+      json = storage;
+    }
 
     let root = new Card();
     window.root = root;
-    root.parent = {node: document.body}; // forces data structure integrity
-    root.attach({ //root is always made fullscreen
-      position: 'absolute',
+    root.parent = { node: document.body }; // forces data structure integrity
+    root.attach({
+      //root is always made fullscreen
+      position: "absolute",
       left: 0,
       top: 0,
       width: window.innerWidth,
-      height: window.innerHeight
+      height: window.innerHeight,
     });
 
-    root.type = 'container';
+    root.type = "container";
     styleGrid(root);
     initContainer(root);
     root.counter = json.counter;
 
     //node is the object, parent is the Card
     function recurse(node, parent) {
-      node.children.forEach(c => {
+      node.children.forEach((c) => {
         let card = parent.addCard(c.id);
         card.attach(c.spec);
         card.type = c.type;
@@ -74,7 +81,7 @@ function onLoad(event) {
         card.autorun = c.autorun;
 
         initCard(card);
-        if(card.autorun) {
+        if (card.autorun) {
           new Function(card.source)();
         }
 
@@ -82,7 +89,7 @@ function onLoad(event) {
       });
     }
 
-    recurse(json, root)
+    recurse(json, root);
 
     return root;
   }
@@ -90,16 +97,16 @@ function onLoad(event) {
 
 function buildRoot() {
   window.root = new Card();
-  root.parent = {node: document.body}; // forces data structure integrity
+  root.parent = { node: document.body }; // forces data structure integrity
   root.attach({
-    position: 'absolute',
+    position: "absolute",
     left: 0,
     top: 0,
     width: window.innerWidth,
-    height: window.innerHeight
+    height: window.innerHeight,
   });
 
-  root.type = 'container';
+  root.type = "container";
   styleGrid(root);
 
   initContainer(root);

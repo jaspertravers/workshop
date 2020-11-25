@@ -31137,45 +31137,773 @@
     card.node.style.border = '1px dashed black';
   }
 
+  function dispatch$1(node, type, detail) {
+    detail = detail || {};
+    var document = node.ownerDocument, event = document.defaultView.CustomEvent;
+    if (typeof event === "function") {
+      event = new event(type, {detail: detail});
+    } else {
+      event = document.createEvent("Event");
+      event.initEvent(type, false, false);
+      event.detail = detail;
+    }
+    node.dispatchEvent(event);
+  }
+
+  // TODO https://twitter.com/mbostock/status/702737065121742848
+  function isarray(value) {
+    return Array.isArray(value)
+        || value instanceof Int8Array
+        || value instanceof Int16Array
+        || value instanceof Int32Array
+        || value instanceof Uint8Array
+        || value instanceof Uint8ClampedArray
+        || value instanceof Uint16Array
+        || value instanceof Uint32Array
+        || value instanceof Float32Array
+        || value instanceof Float64Array;
+  }
+
+  // Non-integer keys in arrays, e.g. [1, 2, 0.5: "value"].
+  function isindex(key) {
+    return key === (key | 0) + "";
+  }
+
+  function inspectName(name) {
+    const n = document.createElement("span");
+    n.className = "observablehq--cellname";
+    n.textContent = `${name} = `;
+    return n;
+  }
+
+  const symbolToString = Symbol.prototype.toString;
+
+  // Symbols do not coerce to strings; they must be explicitly converted.
+  function formatSymbol(symbol) {
+    return symbolToString.call(symbol);
+  }
+
+  const {getOwnPropertySymbols, prototype: {hasOwnProperty}} = Object;
+  const {toStringTag} = Symbol;
+
+  const FORBIDDEN = {};
+
+  const symbolsof = getOwnPropertySymbols;
+
+  function isown(object, key) {
+    return hasOwnProperty.call(object, key);
+  }
+
+  function tagof(object) {
+    return object[toStringTag]
+        || (object.constructor && object.constructor.name)
+        || "Object";
+  }
+
+  function valueof(object, key) {
+    try {
+      const value = object[key];
+      if (value) value.constructor; // Test for SecurityError.
+      return value;
+    } catch (ignore) {
+      return FORBIDDEN;
+    }
+  }
+
+  const SYMBOLS = [
+    { symbol: "@@__IMMUTABLE_INDEXED__@@", name: "Indexed", modifier: true },
+    { symbol: "@@__IMMUTABLE_KEYED__@@", name: "Keyed", modifier: true },
+    { symbol: "@@__IMMUTABLE_LIST__@@", name: "List", arrayish: true },
+    { symbol: "@@__IMMUTABLE_MAP__@@", name: "Map" },
+    {
+      symbol: "@@__IMMUTABLE_ORDERED__@@",
+      name: "Ordered",
+      modifier: true,
+      prefix: true
+    },
+    { symbol: "@@__IMMUTABLE_RECORD__@@", name: "Record" },
+    {
+      symbol: "@@__IMMUTABLE_SET__@@",
+      name: "Set",
+      arrayish: true,
+      setish: true
+    },
+    { symbol: "@@__IMMUTABLE_STACK__@@", name: "Stack", arrayish: true }
+  ];
+
+  function immutableName(obj) {
+    try {
+      let symbols = SYMBOLS.filter(({ symbol }) => obj[symbol] === true);
+      if (!symbols.length) return;
+
+      const name = symbols.find(s => !s.modifier);
+      const prefix =
+        name.name === "Map" && symbols.find(s => s.modifier && s.prefix);
+
+      const arrayish = symbols.some(s => s.arrayish);
+      const setish = symbols.some(s => s.setish);
+
+      return {
+        name: `${prefix ? prefix.name : ""}${name.name}`,
+        symbols,
+        arrayish: arrayish && !setish,
+        setish
+      };
+    } catch (e) {
+      return null;
+    }
+  }
+
+  const {getPrototypeOf, getOwnPropertyDescriptors} = Object;
+  const objectPrototype = getPrototypeOf({});
+
+  function inspectExpanded(object, _, name, proto) {
+    let arrayish = isarray(object);
+    let tag, fields, next, n;
+
+    if (object instanceof Map) {
+      tag = `Map(${object.size})`;
+      fields = iterateMap;
+    } else if (object instanceof Set) {
+      tag = `Set(${object.size})`;
+      fields = iterateSet;
+    } else if (arrayish) {
+      tag = `${object.constructor.name}(${object.length})`;
+      fields = iterateArray;
+    } else if ((n = immutableName(object))) {
+      tag = `Immutable.${n.name}${n.name === "Record" ? "" : `(${object.size})`}`;
+      arrayish = n.arrayish;
+      fields = n.arrayish
+        ? iterateImArray
+        : n.setish
+        ? iterateImSet
+        : iterateImObject;
+    } else if (proto) {
+      tag = tagof(object);
+      fields = iterateProto;
+    } else {
+      tag = tagof(object);
+      fields = iterateObject;
+    }
+
+    const span = document.createElement("span");
+    span.className = "observablehq--expanded";
+    if (name) {
+      span.appendChild(inspectName(name));
+    }
+    const a = span.appendChild(document.createElement("a"));
+    a.innerHTML = `<svg width=8 height=8 class='observablehq--caret'>
+    <path d='M4 7L0 1h8z' fill='currentColor' />
+  </svg>`;
+    a.appendChild(document.createTextNode(`${tag}${arrayish ? " [" : " {"}`));
+    a.addEventListener("mouseup", function(event) {
+      event.stopPropagation();
+      replace$1(span, inspectCollapsed(object, null, name, proto));
+    });
+
+    fields = fields(object);
+    for (let i = 0; !(next = fields.next()).done && i < 20; ++i) {
+      span.appendChild(next.value);
+    }
+
+    if (!next.done) {
+      const a = span.appendChild(document.createElement("a"));
+      a.className = "observablehq--field";
+      a.style.display = "block";
+      a.appendChild(document.createTextNode(`  … more`));
+      a.addEventListener("mouseup", function(event) {
+        event.stopPropagation();
+        span.insertBefore(next.value, span.lastChild.previousSibling);
+        for (let i = 0; !(next = fields.next()).done && i < 19; ++i) {
+          span.insertBefore(next.value, span.lastChild.previousSibling);
+        }
+        if (next.done) span.removeChild(span.lastChild.previousSibling);
+        dispatch$1(span, "load");
+      });
+    }
+
+    span.appendChild(document.createTextNode(arrayish ? "]" : "}"));
+
+    return span;
+  }
+
+  function* iterateMap(map) {
+    for (const [key, value] of map) {
+      yield formatMapField(key, value);
+    }
+    yield* iterateObject(map);
+  }
+
+  function* iterateSet(set) {
+    for (const value of set) {
+      yield formatSetField(value);
+    }
+    yield* iterateObject(set);
+  }
+
+  function* iterateImSet(set) {
+    for (const value of set) {
+      yield formatSetField(value);
+    }
+  }
+
+  function* iterateArray(array) {
+    for (let i = 0, n = array.length; i < n; ++i) {
+      if (i in array) {
+        yield formatField(i, valueof(array, i), "observablehq--index");
+      }
+    }
+    for (const key in array) {
+      if (!isindex(key) && isown(array, key)) {
+        yield formatField(key, valueof(array, key), "observablehq--key");
+      }
+    }
+    for (const symbol of symbolsof(array)) {
+      yield formatField(
+        formatSymbol(symbol),
+        valueof(array, symbol),
+        "observablehq--symbol"
+      );
+    }
+  }
+
+  function* iterateImArray(array) {
+    let i1 = 0;
+    for (const n = array.size; i1 < n; ++i1) {
+      yield formatField(i1, array.get(i1), true);
+    }
+  }
+
+  function* iterateProto(object) {
+    for (const key in getOwnPropertyDescriptors(object)) {
+      yield formatField(key, valueof(object, key), "observablehq--key");
+    }
+    for (const symbol of symbolsof(object)) {
+      yield formatField(
+        formatSymbol(symbol),
+        valueof(object, symbol),
+        "observablehq--symbol"
+      );
+    }
+
+    const proto = getPrototypeOf(object);
+    if (proto && proto !== objectPrototype) {
+      yield formatPrototype(proto);
+    }
+  }
+
+  function* iterateObject(object) {
+    for (const key in object) {
+      if (isown(object, key)) {
+        yield formatField(key, valueof(object, key), "observablehq--key");
+      }
+    }
+    for (const symbol of symbolsof(object)) {
+      yield formatField(
+        formatSymbol(symbol),
+        valueof(object, symbol),
+        "observablehq--symbol"
+      );
+    }
+
+    const proto = getPrototypeOf(object);
+    if (proto && proto !== objectPrototype) {
+      yield formatPrototype(proto);
+    }
+  }
+
+  function* iterateImObject(object) {
+    for (const [key, value] of object) {
+      yield formatField(key, value, "observablehq--key");
+    }
+  }
+
+  function formatPrototype(value) {
+    const item = document.createElement("div");
+    const span = item.appendChild(document.createElement("span"));
+    item.className = "observablehq--field";
+    span.className = "observablehq--prototype-key";
+    span.textContent = `  <prototype>`;
+    item.appendChild(document.createTextNode(": "));
+    item.appendChild(inspect(value, undefined, undefined, undefined, true));
+    return item;
+  }
+
+  function formatField(key, value, className) {
+    const item = document.createElement("div");
+    const span = item.appendChild(document.createElement("span"));
+    item.className = "observablehq--field";
+    span.className = className;
+    span.textContent = `  ${key}`;
+    item.appendChild(document.createTextNode(": "));
+    item.appendChild(inspect(value));
+    return item;
+  }
+
+  function formatMapField(key, value) {
+    const item = document.createElement("div");
+    item.className = "observablehq--field";
+    item.appendChild(document.createTextNode("  "));
+    item.appendChild(inspect(key));
+    item.appendChild(document.createTextNode(" => "));
+    item.appendChild(inspect(value));
+    return item;
+  }
+
+  function formatSetField(value) {
+    const item = document.createElement("div");
+    item.className = "observablehq--field";
+    item.appendChild(document.createTextNode("  "));
+    item.appendChild(inspect(value));
+    return item;
+  }
+
+  function hasSelection$2(elem) {
+    const sel = window.getSelection();
+    return (
+      sel.type === "Range" &&
+      (sel.containsNode(elem, true) ||
+        sel.anchorNode.isSelfOrDescendant(elem) ||
+        sel.focusNode.isSelfOrDescendant(elem))
+    );
+  }
+
+  function inspectCollapsed(object, shallow, name, proto) {
+    let arrayish = isarray(object);
+    let tag, fields, next, n;
+
+    if (object instanceof Map) {
+      tag = `Map(${object.size})`;
+      fields = iterateMap$1;
+    } else if (object instanceof Set) {
+      tag = `Set(${object.size})`;
+      fields = iterateSet$1;
+    } else if (arrayish) {
+      tag = `${object.constructor.name}(${object.length})`;
+      fields = iterateArray$1;
+    } else if ((n = immutableName(object))) {
+      tag = `Immutable.${n.name}${n.name === 'Record' ? '' : `(${object.size})`}`;
+      arrayish = n.arrayish;
+      fields = n.arrayish ? iterateImArray$1 : n.setish ? iterateImSet$1 : iterateImObject$1;
+    } else {
+      tag = tagof(object);
+      fields = iterateObject$1;
+    }
+
+    if (shallow) {
+      const span = document.createElement("span");
+      span.className = "observablehq--shallow";
+      if (name) {
+        span.appendChild(inspectName(name));
+      }
+      span.appendChild(document.createTextNode(tag));
+      span.addEventListener("mouseup", function(event) {
+        if (hasSelection$2(span)) return;
+        event.stopPropagation();
+        replace$1(span, inspectCollapsed(object));
+      });
+      return span;
+    }
+
+    const span = document.createElement("span");
+    span.className = "observablehq--collapsed";
+    if (name) {
+      span.appendChild(inspectName(name));
+    }
+    const a = span.appendChild(document.createElement("a"));
+    a.innerHTML = `<svg width=8 height=8 class='observablehq--caret'>
+    <path d='M7 4L1 8V0z' fill='currentColor' />
+  </svg>`;
+    a.appendChild(document.createTextNode(`${tag}${arrayish ? " [" : " {"}`));
+    span.addEventListener("mouseup", function(event) {
+      if (hasSelection$2(span)) return;
+      event.stopPropagation();
+      replace$1(span, inspectExpanded(object, null, name, proto));
+    }, true);
+
+    fields = fields(object);
+    for (let i = 0; !(next = fields.next()).done && i < 20; ++i) {
+      if (i > 0) span.appendChild(document.createTextNode(", "));
+      span.appendChild(next.value);
+    }
+
+    if (!next.done) span.appendChild(document.createTextNode(", …"));
+    span.appendChild(document.createTextNode(arrayish ? "]" : "}"));
+
+    return span;
+  }
+
+  function* iterateMap$1(map) {
+    for (const [key, value] of map) {
+      yield formatMapField$1(key, value);
+    }
+    yield* iterateObject$1(map);
+  }
+
+  function* iterateSet$1(set) {
+    for (const value of set) {
+      yield inspect(value, true);
+    }
+    yield* iterateObject$1(set);
+  }
+
+  function* iterateImSet$1(set) {
+    for (const value of set) {
+      yield inspect(value, true);
+    }
+  }
+
+  function* iterateImArray$1(array) {
+    let i0 = -1, i1 = 0;
+    for (const n = array.size; i1 < n; ++i1) {
+      if (i1 > i0 + 1) yield formatEmpty(i1 - i0 - 1);
+      yield inspect(array.get(i1), true);
+      i0 = i1;
+    }
+    if (i1 > i0 + 1) yield formatEmpty(i1 - i0 - 1);
+  }
+
+  function* iterateArray$1(array) {
+    let i0 = -1, i1 = 0;
+    for (const n = array.length; i1 < n; ++i1) {
+      if (i1 in array) {
+        if (i1 > i0 + 1) yield formatEmpty(i1 - i0 - 1);
+        yield inspect(valueof(array, i1), true);
+        i0 = i1;
+      }
+    }
+    if (i1 > i0 + 1) yield formatEmpty(i1 - i0 - 1);
+    for (const key in array) {
+      if (!isindex(key) && isown(array, key)) {
+        yield formatField$1(key, valueof(array, key), "observablehq--key");
+      }
+    }
+    for (const symbol of symbolsof(array)) {
+      yield formatField$1(formatSymbol(symbol), valueof(array, symbol), "observablehq--symbol");
+    }
+  }
+
+  function* iterateObject$1(object) {
+    for (const key in object) {
+      if (isown(object, key)) {
+        yield formatField$1(key, valueof(object, key), "observablehq--key");
+      }
+    }
+    for (const symbol of symbolsof(object)) {
+      yield formatField$1(formatSymbol(symbol), valueof(object, symbol), "observablehq--symbol");
+    }
+  }
+
+  function* iterateImObject$1(object) {
+    for (const [key, value] of object) {
+      yield formatField$1(key, value, "observablehq--key");
+    }
+  }
+
+  function formatEmpty(e) {
+    const span = document.createElement("span");
+    span.className = "observablehq--empty";
+    span.textContent = e === 1 ? "empty" : `empty × ${e}`;
+    return span;
+  }
+
+  function formatField$1(key, value, className) {
+    const fragment = document.createDocumentFragment();
+    const span = fragment.appendChild(document.createElement("span"));
+    span.className = className;
+    span.textContent = key;
+    fragment.appendChild(document.createTextNode(": "));
+    fragment.appendChild(inspect(value, true));
+    return fragment;
+  }
+
+  function formatMapField$1(key, value) {
+    const fragment = document.createDocumentFragment();
+    fragment.appendChild(inspect(key, true));
+    fragment.appendChild(document.createTextNode(" => "));
+    fragment.appendChild(inspect(value, true));
+    return fragment;
+  }
+
+  function pad(value, width) {
+    var s = value + "", length = s.length;
+    return length < width ? new Array(width - length + 1).join(0) + s : s;
+  }
+
+  function isUTCMidnight(date) {
+    return date.getUTCMilliseconds() === 0
+        && date.getUTCSeconds() === 0
+        && date.getUTCMinutes() === 0
+        && date.getUTCHours() === 0;
+  }
+
+  function formatYear(year) {
+    return year < 0 ? "-" + pad(-year, 6)
+      : year > 9999 ? "+" + pad(year, 6)
+      : pad(year, 4);
+  }
+
+  function formatDate(date) {
+    return isNaN(date)
+      ? "Invalid Date"
+      : isUTCMidnight(date)
+        ? formatYear(date.getUTCFullYear()) + "-" + pad(date.getUTCMonth() + 1, 2) + "-" + pad(date.getUTCDate(), 2)
+        : formatYear(date.getFullYear()) + "-" + pad(date.getMonth() + 1, 2) + "-" + pad(date.getDate(), 2)
+          + "T" + pad(date.getHours(), 2) + ":" + pad(date.getMinutes(), 2)
+          + (date.getMilliseconds() ? ":" + pad(date.getSeconds(), 2) + "." + pad(date.getMilliseconds(), 3)
+            : date.getSeconds() ? ":" + pad(date.getSeconds(), 2)
+            : "");
+  }
+
+  var errorToString = Error.prototype.toString;
+
+  function formatError(value) {
+    return value.stack || errorToString.call(value);
+  }
+
+  var regExpToString = RegExp.prototype.toString;
+
+  function formatRegExp(value) {
+    return regExpToString.call(value);
+  }
+
+  /* eslint-disable no-control-regex */
+  const NEWLINE_LIMIT = 20;
+
+  function formatString(string, shallow, expanded, name) {
+    if (shallow === false) {
+      // String has fewer escapes displayed with double quotes
+      if (count(string, /["\n]/g) <= count(string, /`|\${/g)) {
+        const span = document.createElement("span");
+        if (name) span.appendChild(inspectName(name));
+        const textValue = span.appendChild(document.createElement("span"));
+        textValue.className = "observablehq--string";
+        textValue.textContent = JSON.stringify(string);
+        return span;
+      }
+      const lines = string.split("\n");
+      if (lines.length > NEWLINE_LIMIT && !expanded) {
+        const div = document.createElement("div");
+        if (name) div.appendChild(inspectName(name));
+        const textValue = div.appendChild(document.createElement("span"));
+        textValue.className = "observablehq--string";
+        textValue.textContent = "`" + templatify(lines.slice(0, NEWLINE_LIMIT).join("\n"));
+        const splitter = div.appendChild(document.createElement("span"));
+        const truncatedCount = lines.length - NEWLINE_LIMIT;
+        splitter.textContent = `Show ${truncatedCount} truncated line${truncatedCount > 1 ? "s": ""}`; splitter.className = "observablehq--string-expand";
+        splitter.addEventListener("mouseup", function (event) {
+          event.stopPropagation();
+          replace$1(div, inspect(string, shallow, true, name));
+        });
+        return div;
+      }
+      const span = document.createElement("span");
+      if (name) span.appendChild(inspectName(name));
+      const textValue = span.appendChild(document.createElement("span"));
+      textValue.className = `observablehq--string${expanded ? " observablehq--expanded" : ""}`;
+      textValue.textContent = "`" + templatify(string) + "`";
+      return span;
+    }
+
+    const span = document.createElement("span");
+    if (name) span.appendChild(inspectName(name));
+    const textValue = span.appendChild(document.createElement("span"));
+    textValue.className = "observablehq--string";
+    textValue.textContent = JSON.stringify(string.length > 100 ?
+      `${string.slice(0, 50)}…${string.slice(-49)}` : string);
+    return span;
+  }
+
+  function templatify(string) {
+    return string.replace(/[\\`\x00-\x09\x0b-\x19]|\${/g, templatifyChar);
+  }
+
+  function templatifyChar(char) {
+    var code = char.charCodeAt(0);
+    switch (code) {
+      case 0x8: return "\\b";
+      case 0x9: return "\\t";
+      case 0xb: return "\\v";
+      case 0xc: return "\\f";
+      case 0xd: return "\\r";
+    }
+    return code < 0x10 ? "\\x0" + code.toString(16)
+        : code < 0x20 ? "\\x" + code.toString(16)
+        : "\\" + char;
+  }
+
+  function count(string, re) {
+    var n = 0;
+    while (re.exec(string)) ++n;
+    return n;
+  }
+
+  var toString = Function.prototype.toString,
+      TYPE_ASYNC = {prefix: "async ƒ"},
+      TYPE_ASYNC_GENERATOR = {prefix: "async ƒ*"},
+      TYPE_CLASS = {prefix: "class"},
+      TYPE_FUNCTION = {prefix: "ƒ"},
+      TYPE_GENERATOR = {prefix: "ƒ*"};
+
+  function inspectFunction(f, name) {
+    var type, m, t = toString.call(f);
+
+    switch (f.constructor && f.constructor.name) {
+      case "AsyncFunction": type = TYPE_ASYNC; break;
+      case "AsyncGeneratorFunction": type = TYPE_ASYNC_GENERATOR; break;
+      case "GeneratorFunction": type = TYPE_GENERATOR; break;
+      default: type = /^class\b/.test(t) ? TYPE_CLASS : TYPE_FUNCTION; break;
+    }
+
+    // A class, possibly named.
+    // class Name
+    if (type === TYPE_CLASS) {
+      return formatFunction(type, "", name);
+    }
+
+    // An arrow function with a single argument.
+    // foo =>
+    // async foo =>
+    if ((m = /^(?:async\s*)?(\w+)\s*=>/.exec(t))) {
+      return formatFunction(type, "(" + m[1] + ")", name);
+    }
+
+    // An arrow function with parenthesized arguments.
+    // (…)
+    // async (…)
+    if ((m = /^(?:async\s*)?\(\s*(\w+(?:\s*,\s*\w+)*)?\s*\)/.exec(t))) {
+      return formatFunction(type, m[1] ? "(" + m[1].replace(/\s*,\s*/g, ", ") + ")" : "()", name);
+    }
+
+    // A function, possibly: async, generator, anonymous, simply arguments.
+    // function name(…)
+    // function* name(…)
+    // async function name(…)
+    // async function* name(…)
+    if ((m = /^(?:async\s*)?function(?:\s*\*)?(?:\s*\w+)?\s*\(\s*(\w+(?:\s*,\s*\w+)*)?\s*\)/.exec(t))) {
+      return formatFunction(type, m[1] ? "(" + m[1].replace(/\s*,\s*/g, ", ") + ")" : "()", name);
+    }
+
+    // Something else, like destructuring, comments or default values.
+    return formatFunction(type, "(…)", name);
+  }
+
+  function formatFunction(type, args, cellname) {
+    var span = document.createElement("span");
+    span.className = "observablehq--function";
+    if (cellname) {
+      span.appendChild(inspectName(cellname));
+    }
+    var spanType = span.appendChild(document.createElement("span"));
+    spanType.className = "observablehq--keyword";
+    spanType.textContent = type.prefix;
+    span.appendChild(document.createTextNode(args));
+    return span;
+  }
+
+  const {prototype: {toString: toString$1}} = Object;
+
+  function inspect(value, shallow, expand, name, proto) {
+    let type = typeof value;
+    switch (type) {
+      case "boolean":
+      case "undefined": { value += ""; break; }
+      case "number": { value = value === 0 && 1 / value < 0 ? "-0" : value + ""; break; }
+      case "bigint": { value = value + "n"; break; }
+      case "symbol": { value = formatSymbol(value); break; }
+      case "function": { return inspectFunction(value, name); }
+      case "string": { return formatString(value, shallow, expand, name); }
+      default: {
+        if (value === null) { type = null, value = "null"; break; }
+        if (value instanceof Date) { type = "date", value = formatDate(value); break; }
+        if (value === FORBIDDEN) { type = "forbidden", value = "[forbidden]"; break; }
+        switch (toString$1.call(value)) {
+          case "[object RegExp]": { type = "regexp", value = formatRegExp(value); break; }
+          case "[object Error]": // https://github.com/lodash/lodash/blob/master/isError.js#L26
+          case "[object DOMException]": { type = "error", value = formatError(value); break; }
+          default: return (expand ? inspectExpanded : inspectCollapsed)(value, shallow, name, proto);
+        }
+        break;
+      }
+    }
+    const span = document.createElement("span");
+    if (name) span.appendChild(inspectName(name));
+    const n = span.appendChild(document.createElement("span"));
+    n.className = `observablehq--${type}`;
+    n.textContent = value;
+    return span;
+  }
+
+  function replace$1(spanOld, spanNew) {
+    if (spanOld.classList.contains("observablehq--inspect")) spanNew.classList.add("observablehq--inspect");
+    spanOld.parentNode.replaceChild(spanNew, spanOld);
+    dispatch$1(spanNew, "load");
+  }
+
+  function putInspector(parent) {
+    //return Inspector.into(parent);
+    return (value) => parent.appendChild(inspect(value));
+  }
+
   let cardTypes = new Map();
 
   function removeCard(card) {
     window.state.delete(card.id);
-    card.parent.children = card.parent.children.filter(c => c.node != card.node);
+    card.parent.children = card.parent.children.filter(
+      (c) => c.node != card.node
+    );
     card.node.remove();
   }
   function setProseMirror(card) {
-    card.node.style.background = '#fff';
-    card.node.style.border = '1px solid black';
+    card.node.style.background = "#fff";
+    card.node.style.border = "1px solid black";
     card.view = putProseMirror(card.node, card.content);
-    card.node.addEventListener('keyup', savepm);
+    card.node.addEventListener("keyup", savepm);
     function savepm(event) {
       card.content = card.view.state.doc.toJSON();
     }
   }
   function setCodeMirror(card) {
-    card.node.style.background = '#fff';
-    card.node.style.border = '1px solid black';
-    card.view = putCodeMirror (card.node, card.content);
-    card.node.addEventListener('keyup', savecm);
+    card.node.style.background = "#fff";
+    card.node.style.border = "1px solid black";
+    card.view = putCodeMirror(card.node, card.content);
+    card.node.addEventListener("keyup", savecm);
     function savecm(event) {
       card.content = card.view.state.doc.toString();
     }
+  }
+  function setInspector(card) {
+    card.view = putInspector(card.node);
+    card.node.style.background = "#fff";
+    card.node.style.border = "1px solid black";
   }
   function runCodeMirror(card) {
     let task = card.view.state.doc.toString();
     new Function(task)();
   }
   function setCustom(card) {
-    card.node.style.background = '#fff';
-    card.node.style.border = '1px solid black';
+    card.node.style.background = "#fff";
+    card.node.style.border = "1px solid black";
   }
 
-  cardTypes.set('prosemirror', {f: setProseMirror, fromType: 'empty', toType: 'prosemirror'});
-  cardTypes.set('codemirror', {f: setCodeMirror, fromType: 'empty', toType: 'codemirror'});
-  cardTypes.set('run', {f: runCodeMirror, fromType: 'codemirror'});
-  cardTypes.set('custom', {f: setCustom, fromType: 'empty', toType: 'custom'});
-  cardTypes.set('remove', {f: removeCard, fromType: 'all'});
+  cardTypes.set("prosemirror", {
+    f: setProseMirror,
+    fromType: "empty",
+    toType: "prosemirror",
+  });
+  cardTypes.set("codemirror", {
+    f: setCodeMirror,
+    fromType: "empty",
+    toType: "codemirror",
+  });
+  cardTypes.set("inspector", {
+    f: setInspector,
+    fromType: "empty",
+    toType: "inspector",
+  });
+  cardTypes.set("run", { f: runCodeMirror, fromType: "codemirror" });
+  cardTypes.set("custom", { f: setCustom, fromType: "empty", toType: "custom" });
+  cardTypes.set("remove", { f: removeCard, fromType: "all" });
 
   function initContainer(card) {
     //root
@@ -31192,8 +31920,10 @@
     card.node.oncontextmenu = (event) => event.preventDefault();
 
     function onMouseDown(event) {
+      //card.parent.node.appendChild(card.node);
       if (event.which === 1) {
         if (event.ctrlKey) {
+          event.preventDefault();
           //New Card
           startX = Math.floor(event.clientX / 12) * 12;
           startY = Math.floor(event.clientY / 12) * 12;
@@ -31201,9 +31931,14 @@
           let top = Math.floor(event.offsetY / 12) * 12;
 
           newCard = card.addCard();
-          newCard.attach({position: 'absolute', 
-            left, top, width: 12, height: 12});
-          newCard.type = 'empty';
+          newCard.attach({
+            position: "absolute",
+            left,
+            top,
+            width: 12,
+            height: 12,
+          });
+          newCard.type = "empty";
           initCard(newCard);
           document.onmousemove = onMouseMove;
         }
@@ -31221,8 +31956,7 @@
         let value = Math.ceil(dx / 12) * 12;
         changeX = value;
         dx -= value;
-      }
-      else if (dx < -9) {
+      } else if (dx < -9) {
         let value = Math.floor(dx / 12) * 12;
         changeX = value;
         dx -= value;
@@ -31231,8 +31965,7 @@
         let value = Math.ceil(dy / 12) * 12;
         changeY = value;
         dy -= value;
-      }
-      else if (dy < -9) {
+      } else if (dy < -9) {
         let value = Math.floor(dy / 12) * 12;
         changeY = value;
         dy -= value;
@@ -31241,33 +31974,36 @@
       //TODO fix lossly anchor corner
       if (event.clientX > startX && event.clientY > startY) {
         //quadrant = 'SE'
-        newCard.move({width: changeX, height: changeY}, true);
+        newCard.move({ width: changeX, height: changeY }, true);
       }
       if (event.clientX < startX && event.clientY > startY) {
         //quadrant = 'SW'
-        newCard.move({left: changeX, width: -changeX, height: changeY}, true);
+        newCard.move({ left: changeX, width: -changeX, height: changeY }, true);
       }
       if (event.clientX > startX && event.clientY < startY) {
         //quadrant = 'NE'
-        newCard.move({top: changeY, width: changeX, height: -changeY}, true);
+        newCard.move({ top: changeY, width: changeX, height: -changeY }, true);
       }
       if (event.clientX < startX && event.clientY < startY) {
         //quadrant = 'NW'
-        newCard.move({left: changeX, top: changeY, width: -changeX, height: -changeY}, true);
+        newCard.move(
+          { left: changeX, top: changeY, width: -changeX, height: -changeY },
+          true
+        );
       }
     }
     function onMouseUp(event) {
       newCard = null;
-      dx = 0; dy = 0;
+      dx = 0;
+      dy = 0;
       document.onmousemove = null;
       document.onmouseup = null;
     }
   }
   function initCard(card) {
-    if(card.type === 'empty') {
+    if (card.type === "empty") {
       styleEmpty(card);
-    }
-    else if (card.type) {
+    } else if (card.type) {
       cardTypes.get(card.type)?.f(card);
     }
     let startX;
@@ -31313,8 +32049,7 @@
         let value = Math.ceil(dx / 12) * 12;
         changeX = value;
         dx -= value;
-      }
-      else if (dx < -9) {
+      } else if (dx < -9) {
         let value = Math.floor(dx / 12) * 12;
         changeX = value;
         dx -= value;
@@ -31323,39 +32058,40 @@
         let value = Math.ceil(dy / 12) * 12;
         changeY = value;
         dy -= value;
-      }
-      else if (dy < -9) {
+      } else if (dy < -9) {
         let value = Math.floor(dy / 12) * 12;
         changeY = value;
         dy -= value;
       }
 
-      if (region === 'NW') {
-        card.move({left: changeX, top: changeY, width: -changeX, height: -changeY}, true);
-      }
-      else if (region === 'NE') {
-        card.move({left: 0, top: changeY, width: changeX, height: -changeY}, true);
-      }
-      else if (region === 'SE') {
-        card.move({left: 0, top: 0, width: changeX, height: changeY}, true);
-      }
-      else if (region === 'SW') {
-        card.move({left: changeX, top: 0, width: -changeX, height: changeY}, true);
-      }
-      else if (region === 'N') {
-        card.move({left: 0, top: changeY, width: 0, height: -changeY}, true);
-      }
-      else if (region === 'E') {
-        card.move({left: 0, top: 0, width: changeX, height: 0}, true);
-      }
-      else if (region === 'S') {
-        card.move({left: 0, top: 0, width: 0, height: changeY}, true);
-      }
-      else if (region === 'W') {
-        card.move({left: changeX, top: 0, width: -changeX, height: 0}, true);
-      }
-      else { //move
-        card.move({left: changeX, top: changeY}, true);
+      if (region === "NW") {
+        card.move(
+          { left: changeX, top: changeY, width: -changeX, height: -changeY },
+          true
+        );
+      } else if (region === "NE") {
+        card.move(
+          { left: 0, top: changeY, width: changeX, height: -changeY },
+          true
+        );
+      } else if (region === "SE") {
+        card.move({ left: 0, top: 0, width: changeX, height: changeY }, true);
+      } else if (region === "SW") {
+        card.move(
+          { left: changeX, top: 0, width: -changeX, height: changeY },
+          true
+        );
+      } else if (region === "N") {
+        card.move({ left: 0, top: changeY, width: 0, height: -changeY }, true);
+      } else if (region === "E") {
+        card.move({ left: 0, top: 0, width: changeX, height: 0 }, true);
+      } else if (region === "S") {
+        card.move({ left: 0, top: 0, width: 0, height: changeY }, true);
+      } else if (region === "W") {
+        card.move({ left: changeX, top: 0, width: -changeX, height: 0 }, true);
+      } else {
+        //move
+        card.move({ left: changeX, top: changeY }, true);
       }
     }
     function determineRegion() {
@@ -31363,34 +32099,28 @@
       let higherX = card.spec.width * 0.75;
       let lowerY = card.spec.height * 0.25;
       let higherY = card.spec.height * 0.75;
-      
+
       let xval = startX - card.spec.left;
       let yval = startY - card.spec.top;
 
-      if (xval <= lowerX && yval <= lowerY) { return 'NW'; }
-      else if (xval >= higherX && yval <= lowerY) {
-        return 'NE';
-      }
-      else if (xval >= higherX && yval >= higherY) {
-        return 'SE';
-      }
-      else if (xval <= lowerX && yval >= higherY) {
-        return 'SW';
-      }
-      else if (xval > lowerX && xval < higherX && yval < lowerY) {
-        return 'N';
-      }
-      else if (xval > higherX && yval > lowerY && yval < higherY) {
-        return 'E';
-      }
-      else if (xval > lowerX && xval < higherX && yval > higherY) {
-        return 'S';
-      }
-      else if (xval < lowerX && yval > lowerY && yval < higherY) {
-        return 'W';
-      }
-      else {
-        return 'move';
+      if (xval <= lowerX && yval <= lowerY) {
+        return "NW";
+      } else if (xval >= higherX && yval <= lowerY) {
+        return "NE";
+      } else if (xval >= higherX && yval >= higherY) {
+        return "SE";
+      } else if (xval <= lowerX && yval >= higherY) {
+        return "SW";
+      } else if (xval > lowerX && xval < higherX && yval < lowerY) {
+        return "N";
+      } else if (xval > higherX && yval > lowerY && yval < higherY) {
+        return "E";
+      } else if (xval > lowerX && xval < higherX && yval > higherY) {
+        return "S";
+      } else if (xval < lowerX && yval > lowerY && yval < higherY) {
+        return "W";
+      } else {
+        return "move";
       }
     }
     function onMouseUp(event) {
@@ -31400,38 +32130,42 @@
     }
   }
   function addContextMenu(card, event) {
-    const menu = document.createElement('div');
+    const menu = document.createElement("div");
     document.body.appendChild(menu);
-    menu.style.position = 'absolute';
-    menu.style.left = event.clientX + 'px';
-    menu.style.top = event.clientY + 'px';
-    menu.style.borderTop = '1px dashed black';
-    menu.style.borderLeft = '1px dashed black';
-    menu.style.borderRight = '1px dashed black';
+    menu.style.position = "absolute";
+    menu.style.left = event.clientX + "px";
+    menu.style.top = event.clientY + "px";
+    menu.style.borderTop = "1px dashed black";
+    menu.style.borderLeft = "1px dashed black";
+    menu.style.borderRight = "1px dashed black";
 
-    document.body.addEventListener('click', removeMenu);
-    document.body.addEventListener('contextmenu', removeMenu);
+    document.body.addEventListener("click", removeMenu);
+    document.body.addEventListener("contextmenu", removeMenu);
     function removeMenu(event) {
-      document.body.removeEventListener('click', removeMenu);
-      document.body.removeEventListener('contextmenu', removeMenu);
+      document.body.removeEventListener("click", removeMenu);
+      document.body.removeEventListener("contextmenu", removeMenu);
       menu.remove();
     }
 
     function addButton(pair) {
       const [label, def] = pair;
-      const button = document.createElement('div');
+      const button = document.createElement("div");
       button.innerHTML = label;
-      button.style.minHeight = '1.8rem';
-      button.style.paddingLeft = '1rem';
-      button.style.paddingRight = '1rem';
-      button.style.borderBottom = '1px dashed black';
-      button.style.display = 'flex';
-      button.style.alignItems = 'center';
-      button.style.cursor = 'pointer';
-      button.style.background = '#fff';
+      button.style.minHeight = "1.8rem";
+      button.style.paddingLeft = "1rem";
+      button.style.paddingRight = "1rem";
+      button.style.borderBottom = "1px dashed black";
+      button.style.display = "flex";
+      button.style.alignItems = "center";
+      button.style.cursor = "pointer";
+      button.style.background = "#fff";
 
-      button.onmouseover = (event) => {button.style.background = '#eee';};
-      button.onmouseout = (event) => {button.style.background = '#fff';};
+      button.onmouseover = (event) => {
+        button.style.background = "#eee";
+      };
+      button.onmouseout = (event) => {
+        button.style.background = "#fff";
+      };
 
       button.onclick = (event) => {
         if (def.toType) card.type = def.toType;
@@ -31443,34 +32177,981 @@
 
     for (let pair of cardTypes) {
       const [label, def] = pair;
-      if(card.type === def.fromType || def.fromType === 'all') {
+      if (card.type === def.fromType || def.fromType === "all") {
         addButton(pair);
       }
     }
   }
 
+  const defaultState = {
+    type: "container",
+    content: null,
+    tags: [],
+    source: "",
+    autorun: false,
+    id: 0,
+    parent: null,
+    children: [
+      {
+        type: "prosemirror",
+        content: {
+          type: "doc",
+          content: [
+            {
+              type: "heading",
+              attrs: { level: 1 },
+              content: [{ type: "text", text: "Dynamic Behavior" }],
+            },
+            {
+              type: "paragraph",
+              content: [
+                { type: "text", text: "This code builds the live label." },
+              ],
+            },
+            { type: "horizontal_rule" },
+            {
+              type: "paragraph",
+              content: [
+                {
+                  type: "text",
+                  text:
+                    "To redefine this behavior, edit the code to the right, and rerun the lower persistence and assignment code. ",
+                },
+              ],
+            },
+          ],
+        },
+        tags: ["hoverLabel", "hoverStatus"],
+        source: "",
+        autorun: false,
+        id: 1,
+        parent: null,
+        children: [],
+        node: null,
+        view: null,
+        spec: {
+          position: "absolute",
+          left: 132,
+          top: 204,
+          width: 456,
+          height: 432,
+        },
+        display: "",
+      },
+      {
+        type: "codemirror",
+        content:
+          "let hover = state.get(12);\nwindow.addEventListener('mousemove', hoverIndicator);\nfunction hoverIndicator(event) {\n  let card = getCardFromEvent(event);\n  if (!card) return;\n  hover.node.style.display = 'flex';\n  hover.node.style.alignItems = 'center';\n  hover.node.style.paddingLeft = '0.5rem';\n  hover.node.innerHTML = `${card.id}`;\n}\nfunction getCardFromEvent(event) {\n  let val;\n  try { //event.path includes two elements without classLists\n    val = event.path.find((e) => e.classList.contains('card'));\n  } catch (error) {\n    return false;\n  }\n  let card = root.allChildren().find(e => e.node === val) || root;\n  return card;\n}\n",
+        tags: ["hoverLabel", "hoverStatus"],
+        source: "",
+        autorun: false,
+        id: 2,
+        parent: null,
+        children: [],
+        node: null,
+        view: null,
+        spec: {
+          position: "absolute",
+          left: 600,
+          top: 204,
+          width: 504,
+          height: 432,
+        },
+        display: "",
+      },
+      {
+        type: "custom",
+        content: null,
+        tags: ["viewport"],
+        source:
+          "let hover = state.get(12);\nwindow.addEventListener('mousemove', hoverIndicator);\nfunction hoverIndicator(event) {\n  let card = getCardFromEvent(event);\n  if (!card) return;\n  hover.node.style.display = 'flex';\n  hover.node.style.alignItems = 'center';\n  hover.node.style.paddingLeft = '0.5rem';\n  hover.node.innerHTML = `${card.id}`;\n}\nfunction getCardFromEvent(event) {\n  let val;\n  try { //event.path includes two elements without classLists\n    val = event.path.find((e) => e.classList.contains('card'));\n  } catch (error) {\n    return false;\n  }\n  let card = root.allChildren().find(e => e.node === val) || root;\n  return card;\n}\n",
+        autorun: true,
+        id: 12,
+        parent: null,
+        children: [],
+        node: null,
+        view: null,
+        spec: {
+          position: "absolute",
+          left: 12,
+          top: 12,
+          width: 48,
+          height: 24,
+        },
+      },
+      {
+        type: "codemirror",
+        content:
+          "let code = state.get(2); //above code\nlet target = state.get(12); //live label card\ntarget.source = code.content;\ntarget.autorun = true;",
+        tags: ["hoverLabel", "hoverStatus"],
+        source: "",
+        autorun: false,
+        id: 15,
+        parent: null,
+        children: [],
+        node: null,
+        view: null,
+        spec: {
+          position: "absolute",
+          left: 600,
+          top: 648,
+          width: 504,
+          height: 96,
+        },
+        display: "",
+      },
+      {
+        type: "prosemirror",
+        content: {
+          type: "doc",
+          content: [
+            {
+              type: "heading",
+              attrs: { level: 1 },
+              content: [{ type: "text", text: "Persistence" }],
+            },
+            {
+              type: "paragraph",
+              content: [
+                {
+                  type: "text",
+                  text:
+                    "This card grabs the above code and sets it as the label’s ",
+                },
+                {
+                  type: "text",
+                  marks: [{ type: "code" }],
+                  text: "source",
+                },
+                { type: "text", text: ". It also sets the card " },
+                {
+                  type: "text",
+                  marks: [{ type: "code" }],
+                  text: "autorun",
+                },
+                {
+                  type: "text",
+                  text:
+                    " field to enable this dynamic behavior to persist between sessions.",
+                },
+              ],
+            },
+            { type: "paragraph" },
+            {
+              type: "paragraph",
+              content: [
+                {
+                  type: "text",
+                  text:
+                    "This demonstrates the behavior defining workflow: edit the first code, make it persistent by running the second code.",
+                },
+              ],
+            },
+          ],
+        },
+        tags: ["hoverLabel", "hoverStatus"],
+        source: "",
+        autorun: false,
+        id: 16,
+        parent: null,
+        children: [],
+        node: null,
+        view: null,
+        spec: {
+          position: "absolute",
+          left: 132,
+          top: 648,
+          width: 456,
+          height: 228,
+        },
+        display: "",
+      },
+      {
+        type: "prosemirror",
+        content: {
+          type: "doc",
+          content: [
+            {
+              type: "heading",
+              attrs: { level: 1 },
+              content: [{ type: "text", text: "Association" }],
+            },
+            {
+              type: "paragraph",
+              content: [
+                {
+                  type: "text",
+                  text:
+                    "Top left is a live label which gives the id of whichever card is under the mouse. This enables accessing cards in code by using the ",
+                },
+                { type: "text", marks: [{ type: "code" }], text: "id" },
+                { type: "text", text: " to key into a Map of all Cards." },
+              ],
+            },
+          ],
+        },
+        tags: ["hoverLabel", "hoverStatus"],
+        source: "",
+        autorun: false,
+        id: 17,
+        parent: null,
+        children: [],
+        node: null,
+        view: null,
+        spec: {
+          position: "absolute",
+          left: 132,
+          top: 12,
+          width: 684,
+          height: 180,
+        },
+        display: "",
+      },
+      {
+        type: "prosemirror",
+        content: {
+          type: "doc",
+          content: [
+            {
+              type: "heading",
+              attrs: { level: 1 },
+              content: [{ type: "text", text: "makeTab" }],
+            },
+          ],
+        },
+        tags: ["makeTab"],
+        source: "",
+        autorun: false,
+        id: 58,
+        parent: null,
+        children: [],
+        node: null,
+        view: null,
+        spec: {
+          position: "absolute",
+          left: 168,
+          top: 12,
+          width: 540,
+          height: 72,
+        },
+        display: "",
+      },
+      {
+        type: "codemirror",
+        content:
+          "// first\nlet id = 78;\nlet tag = 'explainer';\n\nlet button = state.get(id);\nbutton.node.style.display = 'flex';\nbutton.node.style.alignItems = 'center';\nbutton.node.style.paddingLeft = '1rem';\nbutton.node.innerHTML = tag;\nbutton.node.style.cursor = 'pointer';\nbutton.node.style.userSelect = 'none';\n\nbutton.node.onmouseover = (event) => {button.node.style.background = '#eee'}\nbutton.node.onmouseout = (event) => {button.node.style.background = '#fff'}\n\n{\n  let toggle = true;\n\n  button.node.onclick = (event) => {\n    event.preventDefault();\n    root.allChildren().forEach(c => {\n      if (c.tags.includes(tag)) {\n        if(toggle) {\n          c.display = c.node.style.display;\n          c.node.style.display = 'none';\n        }\n        else {\n          c.node.style.display = c.display;\n          delete c.display;\n          c.parent.node.appendChild(c.node);\n        }\n      }\n    })\n    toggle = !toggle;\n  }\n}\n\nbutton.node.onclick(new Event('click')) //hides tab contents on boot",
+        tags: ["makeTab"],
+        source: "",
+        autorun: false,
+        id: 60,
+        parent: null,
+        children: [],
+        node: null,
+        view: null,
+        spec: {
+          position: "absolute",
+          left: 720,
+          top: 96,
+          width: 588,
+          height: 684,
+        },
+        display: "",
+      },
+      {
+        type: "codemirror",
+        content:
+          "// second\nlet ids = [79, 80, 81, 83, 85];\nlet tag = 'explainer';\n\nids.forEach(id => {\n  let card = state.get(id);\n  if(!card.tags.includes(tag)) card.tags.push(tag);\n})",
+        tags: ["makeTab"],
+        source: "",
+        autorun: false,
+        id: 61,
+        parent: null,
+        children: [],
+        node: null,
+        view: null,
+        spec: {
+          position: "absolute",
+          left: 1320,
+          top: 96,
+          width: 408,
+          height: 180,
+        },
+        display: "",
+      },
+      {
+        type: "custom",
+        content: null,
+        tags: [],
+        source:
+          "let target = 63;\nlet tag = 'hoverStatus';\n\nlet button = state.get(target);\nbutton.node.style.display = 'flex';\nbutton.node.style.alignItems = 'center';\nbutton.node.style.paddingLeft = '1rem';\nbutton.node.innerHTML = tag;\nbutton.node.style.cursor = 'pointer';\nbutton.node.style.userSelect = 'none';\n\nbutton.node.onmouseover = (event) => {button.node.style.background = '#eee'}\nbutton.node.onmouseout = (event) => {button.node.style.background = '#fff'}\n\n{\n  let toggle = true;\n\n  button.node.onclick = (event) => {\n    event.preventDefault();\n    root.allChildren().forEach(c => {\n      if (c.tags.includes(tag)) {\n        if(toggle) {\n          c.display = c.node.style.display;\n          c.node.style.display = 'none';\n        }\n        else {\n          c.node.style.display = c.display;\n          delete c.display;\n          c.parent.node.appendChild(c.node);\n        }\n      }\n    })\n    toggle = !toggle;\n  }\n}\n\nbutton.node.onclick(new Event('click')) //hides tab contents on boot",
+        autorun: true,
+        id: 63,
+        parent: null,
+        children: [],
+        node: null,
+        view: null,
+        spec: {
+          position: "absolute",
+          left: 12,
+          top: 84,
+          width: 96,
+          height: 24,
+        },
+      },
+      {
+        type: "codemirror",
+        content:
+          "// third\nlet button = state.get(78);\nlet source = state.get(60).content;\nbutton.source = source;\nbutton.autorun = true;",
+        tags: ["makeTab"],
+        source: "",
+        autorun: false,
+        id: 64,
+        parent: null,
+        children: [],
+        node: null,
+        view: null,
+        spec: {
+          position: "absolute",
+          left: 1320,
+          top: 288,
+          width: 312,
+          height: 120,
+        },
+        display: "",
+      },
+      {
+        type: "custom",
+        content: null,
+        tags: [],
+        source:
+          "let target = 67;\nlet tag = 'makeTab';\n\nlet button = state.get(target);\nbutton.node.style.display = 'flex';\nbutton.node.style.alignItems = 'center';\nbutton.node.style.paddingLeft = '1rem';\nbutton.node.innerHTML = tag;\nbutton.node.style.cursor = 'pointer';\nbutton.node.style.userSelect = 'none';\n\nbutton.node.onmouseover = (event) => {button.node.style.background = '#eee'}\nbutton.node.onmouseout = (event) => {button.node.style.background = '#fff'}\n\n{\n  let toggle = true;\n\n  button.node.onclick = (event) => {\n    event.preventDefault();\n    root.allChildren().forEach(c => {\n      if (c.tags.includes(tag)) {\n        if(toggle) {\n          c.display = c.node.style.display;\n          c.node.style.display = 'none';\n        }\n        else {\n          c.node.style.display = c.display;\n          delete c.display;\n          c.parent.node.appendChild(c.node);\n        }\n      }\n    })\n    toggle = !toggle;\n  }\n}\n\nbutton.node.onclick(new Event('click')) //hides tab contents on boot",
+        autorun: true,
+        id: 67,
+        parent: null,
+        children: [],
+        node: null,
+        view: null,
+        spec: {
+          position: "absolute",
+          left: 12,
+          top: 120,
+          width: 96,
+          height: 24,
+        },
+      },
+      {
+        type: "prosemirror",
+        content: {
+          type: "doc",
+          content: [
+            {
+              type: "paragraph",
+              content: [
+                {
+                  type: "text",
+                  text: "This is how we make the tabs on the left.",
+                },
+              ],
+            },
+            {
+              type: "ordered_list",
+              attrs: { order: 1 },
+              content: [
+                {
+                  type: "list_item",
+                  content: [
+                    {
+                      type: "paragraph",
+                      content: [
+                        {
+                          type: "text",
+                          text: "Make a small card to be a tab, set its type to ",
+                        },
+                        {
+                          type: "text",
+                          marks: [{ type: "code" }],
+                          text: "custom",
+                        },
+                      ],
+                    },
+                  ],
+                },
+                {
+                  type: "list_item",
+                  content: [
+                    {
+                      type: "paragraph",
+                      content: [
+                        {
+                          type: "text",
+                          text:
+                            "put its id in the first code card as the id variable",
+                        },
+                      ],
+                    },
+                  ],
+                },
+                {
+                  type: "list_item",
+                  content: [
+                    {
+                      type: "paragraph",
+                      content: [
+                        {
+                          type: "text",
+                          text:
+                            "put the tabs name as the tag variable in the first and second code cards",
+                        },
+                      ],
+                    },
+                  ],
+                },
+                {
+                  type: "list_item",
+                  content: [
+                    {
+                      type: "paragraph",
+                      content: [
+                        {
+                          type: "text",
+                          text:
+                            "put an array of the card ids to make up the tab as the ",
+                        },
+                        {
+                          type: "text",
+                          marks: [{ type: "code" }],
+                          text: "ids",
+                        },
+                        {
+                          type: "text",
+                          text: " variable in the second code card",
+                        },
+                      ],
+                    },
+                  ],
+                },
+                {
+                  type: "list_item",
+                  content: [
+                    {
+                      type: "paragraph",
+                      content: [
+                        {
+                          type: "text",
+                          text:
+                            "run the code cards in order: first, second, third",
+                        },
+                      ],
+                    },
+                  ],
+                },
+              ],
+            },
+          ],
+        },
+        tags: ["makeTab"],
+        source: "",
+        autorun: false,
+        id: 70,
+        parent: null,
+        children: [],
+        node: null,
+        view: null,
+        spec: {
+          position: "absolute",
+          left: 168,
+          top: 96,
+          width: 540,
+          height: 276,
+        },
+        display: "",
+      },
+      {
+        type: "custom",
+        content: null,
+        tags: [],
+        source:
+          "// first\nlet id = 72;\nlet tag = 'editor';\n\nlet button = state.get(id);\nbutton.node.style.display = 'flex';\nbutton.node.style.alignItems = 'center';\nbutton.node.style.paddingLeft = '1rem';\nbutton.node.innerHTML = tag;\nbutton.node.style.cursor = 'pointer';\nbutton.node.style.userSelect = 'none';\n\nbutton.node.onmouseover = (event) => {button.node.style.background = '#eee'}\nbutton.node.onmouseout = (event) => {button.node.style.background = '#fff'}\n\n{\n  let toggle = true;\n\n  button.node.onclick = (event) => {\n    event.preventDefault();\n    root.allChildren().forEach(c => {\n      if (c.tags.includes(tag)) {\n        if(toggle) {\n          c.display = c.node.style.display;\n          c.node.style.display = 'none';\n        }\n        else {\n          c.node.style.display = c.display;\n          delete c.display;\n          c.parent.node.appendChild(c.node);\n        }\n      }\n    })\n    toggle = !toggle;\n  }\n}\n\nbutton.node.onclick(new Event('click')) //hides tab contents on boot",
+        autorun: true,
+        id: 72,
+        parent: null,
+        children: [],
+        node: null,
+        view: null,
+        spec: {
+          position: "absolute",
+          left: 12,
+          top: 156,
+          width: 96,
+          height: 24,
+        },
+      },
+      {
+        type: "prosemirror",
+        content: {
+          type: "doc",
+          content: [
+            {
+              type: "heading",
+              attrs: { level: 1 },
+              content: [{ type: "text", text: "Editor" }],
+            },
+          ],
+        },
+        tags: ["editor"],
+        source: "",
+        autorun: false,
+        id: 73,
+        parent: null,
+        children: [],
+        node: null,
+        view: null,
+        spec: {
+          position: "absolute",
+          left: 228,
+          top: 12,
+          width: 408,
+          height: 72,
+        },
+        display: "",
+      },
+      {
+        type: "codemirror",
+        content: "",
+        tags: ["editor"],
+        source: "",
+        autorun: false,
+        id: 74,
+        parent: null,
+        children: [],
+        node: null,
+        view: null,
+        spec: {
+          position: "absolute",
+          left: 228,
+          top: 96,
+          width: 408,
+          height: 492,
+        },
+        display: "",
+      },
+      {
+        type: "inspector",
+        content: null,
+        tags: ["editor"],
+        source: "",
+        autorun: false,
+        id: 76,
+        parent: null,
+        children: [],
+        node: null,
+        view: null,
+        spec: {
+          position: "absolute",
+          left: 228,
+          top: 600,
+          width: 408,
+          height: 288,
+        },
+        display: "",
+      },
+      {
+        type: "custom",
+        content: null,
+        tags: [],
+        source:
+          "// first\nlet id = 77;\nlet tag = 'next';\n\nlet button = state.get(id);\nbutton.node.style.display = 'flex';\nbutton.node.style.alignItems = 'center';\nbutton.node.style.paddingLeft = '1rem';\nbutton.node.innerHTML = tag;\nbutton.node.style.cursor = 'pointer';\nbutton.node.style.userSelect = 'none';\n\nbutton.node.onmouseover = (event) => {button.node.style.background = '#eee'}\nbutton.node.onmouseout = (event) => {button.node.style.background = '#fff'}\n\n{\n  let toggle = true;\n\n  button.node.onclick = (event) => {\n    event.preventDefault();\n    root.allChildren().forEach(c => {\n      if (c.tags.includes(tag)) {\n        if(toggle) {\n          c.display = c.node.style.display;\n          c.node.style.display = 'none';\n        }\n        else {\n          c.node.style.display = c.display;\n          delete c.display;\n          c.parent.node.appendChild(c.node);\n        }\n      }\n    })\n    toggle = !toggle;\n  }\n}\n\nbutton.node.onclick(new Event('click')) //hides tab contents on boot",
+        autorun: true,
+        id: 77,
+        parent: null,
+        children: [],
+        node: null,
+        view: null,
+        spec: {
+          position: "absolute",
+          left: 12,
+          top: 192,
+          width: 96,
+          height: 24,
+        },
+      },
+      {
+        type: "custom",
+        content: null,
+        tags: [],
+        source:
+          "// first\nlet id = 78;\nlet tag = 'explainer';\n\nlet button = state.get(id);\nbutton.node.style.display = 'flex';\nbutton.node.style.alignItems = 'center';\nbutton.node.style.paddingLeft = '1rem';\nbutton.node.innerHTML = tag;\nbutton.node.style.cursor = 'pointer';\nbutton.node.style.userSelect = 'none';\n\nbutton.node.onmouseover = (event) => {button.node.style.background = '#eee'}\nbutton.node.onmouseout = (event) => {button.node.style.background = '#fff'}\n\n{\n  let toggle = true;\n\n  button.node.onclick = (event) => {\n    event.preventDefault();\n    root.allChildren().forEach(c => {\n      if (c.tags.includes(tag)) {\n        if(toggle) {\n          c.display = c.node.style.display;\n          c.node.style.display = 'none';\n        }\n        else {\n          c.node.style.display = c.display;\n          delete c.display;\n          c.parent.node.appendChild(c.node);\n        }\n      }\n    })\n    toggle = !toggle;\n  }\n}\n\nbutton.node.onclick(new Event('click')) //hides tab contents on boot",
+        autorun: true,
+        id: 78,
+        parent: null,
+        children: [],
+        node: null,
+        view: null,
+        spec: {
+          position: "absolute",
+          left: 12,
+          top: 48,
+          width: 96,
+          height: 24,
+        },
+      },
+      {
+        type: "prosemirror",
+        content: {
+          type: "doc",
+          content: [
+            {
+              type: "heading",
+              attrs: { level: 1 },
+              content: [{ type: "text", text: "Workshop" }],
+            },
+          ],
+        },
+        tags: ["explainer"],
+        source: "",
+        autorun: false,
+        id: 79,
+        parent: null,
+        children: [],
+        node: null,
+        view: null,
+        spec: {
+          position: "absolute",
+          left: 132,
+          top: 12,
+          width: 204,
+          height: 72,
+        },
+      },
+      {
+        type: "prosemirror",
+        content: {
+          type: "doc",
+          content: [
+            {
+              type: "paragraph",
+              content: [
+                {
+                  type: "text",
+                  text: "A canvas based programming environment",
+                },
+              ],
+            },
+          ],
+        },
+        tags: ["explainer"],
+        source: "",
+        autorun: false,
+        id: 80,
+        parent: null,
+        children: [],
+        node: null,
+        view: null,
+        spec: {
+          position: "absolute",
+          left: 348,
+          top: 36,
+          width: 336,
+          height: 48,
+        },
+      },
+      {
+        type: "prosemirror",
+        content: {
+          type: "doc",
+          content: [
+            {
+              type: "heading",
+              attrs: { level: 1 },
+              content: [{ type: "text", text: "Controls" }],
+            },
+            {
+              type: "paragraph",
+              content: [
+                {
+                  type: "text",
+                  text:
+                    "Control+click+drag on the grid background: makes a new Card.",
+                },
+              ],
+            },
+            {
+              type: "paragraph",
+              content: [
+                {
+                  type: "text",
+                  text:
+                    "Right click + drag a card: moves or resizes that card depending if you grab the middle or near an edge.",
+                },
+              ],
+            },
+            {
+              type: "paragraph",
+              content: [
+                {
+                  type: "text",
+                  text:
+                    "Right click a card: opens an Assign menu to set the card type or remove.",
+                },
+              ],
+            },
+            { type: "horizontal_rule" },
+            {
+              type: "paragraph",
+              content: [
+                {
+                  type: "text",
+                  text: "All cards have an ID and are accessible through ",
+                },
+                {
+                  type: "text",
+                  marks: [{ type: "code" }],
+                  text: "state.get(ID)",
+                },
+                {
+                  type: "text",
+                  text:
+                    ". The ID of a Card can be read by hovering over a card and reading the number on the top left label. The label was coded in this workspace, and it’s source is under the “hoverStatus” tab Card on the left. The tabs were also coded in this workspace and can be read in the “makeTab” card.",
+                },
+              ],
+            },
+            {
+              type: "paragraph",
+              content: [
+                { type: "text", text: "The tabs toggle their content. " },
+              ],
+            },
+            {
+              type: "paragraph",
+              content: [
+                { type: "text", text: "The three Card types are " },
+                {
+                  type: "text",
+                  marks: [{ type: "code" }],
+                  text: "codemirror",
+                },
+                { type: "text", text: ", " },
+                {
+                  type: "text",
+                  marks: [{ type: "code" }],
+                  text: "prosemirror",
+                },
+                { type: "text", text: " and " },
+                {
+                  type: "text",
+                  marks: [{ type: "code" }],
+                  text: "custom",
+                },
+                {
+                  type: "text",
+                  text:
+                    ". Codemirror is your code editor, you can right click on it and run its contents. Prosemirror is this content editor and it is a live markdown editor with ",
+                },
+                {
+                  type: "text",
+                  marks: [{ type: "strong" }],
+                  text: "bold",
+                },
+                { type: "text", text: ", " },
+                {
+                  type: "text",
+                  marks: [{ type: "em" }],
+                  text: "italics",
+                },
+                { type: "text", text: " and " },
+                { type: "text", marks: [{ type: "code" }], text: "code" },
+                {
+                  type: "text",
+                  text:
+                    " along with headers and more. The Custom card is meant to be assigned behavior by programming it in this workspace, as exampled by hoverStatus and makeTab.",
+                },
+              ],
+            },
+            { type: "paragraph" },
+            {
+              type: "paragraph",
+              content: [
+                {
+                  type: "text",
+                  text:
+                    "Content is saved per-editor on keyup in localStorage. Dynamic behavior can also persist between sessions by assigning code to the ",
+                },
+                {
+                  type: "text",
+                  marks: [{ type: "code" }],
+                  text: ".source",
+                },
+                {
+                  type: "text",
+                  text: " field of a Card and setting that Card’s ",
+                },
+                {
+                  type: "text",
+                  marks: [{ type: "code" }],
+                  text: ".autorun",
+                },
+                { type: "text", text: " field to " },
+                { type: "text", marks: [{ type: "code" }], text: "true" },
+                {
+                  type: "text",
+                  text: ". This can be seen in both hoverStatus and makeTab. ",
+                },
+              ],
+            },
+            { type: "paragraph" },
+            {
+              type: "paragraph",
+              content: [
+                {
+                  type: "text",
+                  text:
+                    "Many, many features are in the works and this is more of an experiment than a useable workspace, though I have used it for many writing sessions and find that writing in stackable Prosemirror Cards is an enjoyable experience. ",
+                },
+              ],
+            },
+            { type: "paragraph" },
+            { type: "horizontal_rule" },
+            {
+              type: "paragraph",
+              content: [
+                {
+                  type: "text",
+                  text:
+                    "You may need to double click each tab to get it to fully toggle on refresh, this is a bug to be worked out :P",
+                },
+              ],
+            },
+            { type: "paragraph" },
+          ],
+        },
+        tags: ["explainer"],
+        source: "",
+        autorun: false,
+        id: 81,
+        parent: null,
+        children: [],
+        node: null,
+        view: null,
+        spec: {
+          position: "absolute",
+          left: 132,
+          top: 96,
+          width: 792,
+          height: 756,
+        },
+      },
+      {
+        type: "prosemirror",
+        content: {
+          type: "doc",
+          content: [
+            {
+              type: "heading",
+              attrs: { level: 1 },
+              content: [{ type: "text", text: "The Card Interface" }],
+            },
+            {
+              type: "paragraph",
+              content: [
+                { type: "text", text: "Cards are " },
+                {
+                  type: "text",
+                  marks: [{ type: "code" }],
+                  text: "absolute",
+                },
+                { type: "text", text: " positioned " },
+                {
+                  type: "text",
+                  marks: [{ type: "code" }],
+                  text: "divs.",
+                },
+                { type: "text", text: " " },
+              ],
+            },
+            {
+              type: "paragraph",
+              content: [
+                {
+                  type: "text",
+                  text:
+                    "They are organized by the fields to the right and can be nested to create component units.",
+                },
+              ],
+            },
+            { type: "paragraph" },
+          ],
+        },
+        tags: ["explainer"],
+        source: "",
+        autorun: false,
+        id: 83,
+        parent: null,
+        children: [],
+        node: null,
+        view: null,
+        spec: {
+          position: "absolute",
+          left: 948,
+          top: 120,
+          width: 528,
+          height: 492,
+        },
+      },
+      {
+        type: "codemirror",
+        content:
+          "Card {\n  type : string\n  content : string\n  tags : [string]\n  source : string\n  autorun : boolean\n  id : number\n  parent : Card\n  children : [Card]\n  node : HTMLElement\n  view : EditorView\n}",
+        tags: ["explainer"],
+        source: "",
+        autorun: false,
+        id: 85,
+        parent: null,
+        children: [],
+        node: null,
+        view: null,
+        spec: {
+          position: "absolute",
+          left: 1488,
+          top: 120,
+          width: 396,
+          height: 492,
+        },
+      },
+    ],
+    node: null,
+    view: null,
+    spec: {
+      position: "absolute",
+      left: 0,
+      top: 0,
+      width: 1920,
+      height: 1059,
+    },
+    counter: 86,
+  };
+
   window.onload = onLoad;
 
   function onLoad(event) {
     //document.body.style.fontSize = '12px';
-    document.body.style.overflow = 'hidden';
+    document.body.style.overflow = "hidden";
 
     window.state = new Map();
     window.Card = Card;
     window.cardTypes = cardTypes;
 
     if (window.localStorage.state) {
-      window.root = fromStorage();
+      window.root = fromStorage(window.localStorage.state);
+    } else {
+      window.root = fromStorage(defaultState);
+      //window.root = buildRoot();
     }
-    else {
-      window.root = buildRoot();
-    }
-    ///
     window.onbeforeunload = function (event) {
       if (window.root) toStorage(window.root);
     };
 
-    window.reset = function() { //DEBUG
+    window.reset = function () {
+      //DEBUG
       window.onbeforeunload = null;
       window.localStorage.clear();
     };
@@ -31480,36 +33161,42 @@
     function toStorage(root) {
       //to be called on root
 
-      function replacer (key, value) {
-        if (key === 'node') return null;
-        if (key === 'parent') return null; //prevent circular references
-        if (key === 'view') return null;
+      function replacer(key, value) {
+        if (key === "node") return null;
+        if (key === "parent") return null; //prevent circular references
+        if (key === "view") return null;
         return value;
       }
       window.localStorage.state = JSON.stringify(root, replacer);
     }
-    function fromStorage() {
-      let json = JSON.parse(window.localStorage.state);
+    function fromStorage(storage, parse) {
+      let json;
+      if (parse) {
+        json = JSON.parse(storage);
+      } else {
+        json = storage;
+      }
 
       let root = new Card();
       window.root = root;
-      root.parent = {node: document.body}; // forces data structure integrity
-      root.attach({ //root is always made fullscreen
-        position: 'absolute',
+      root.parent = { node: document.body }; // forces data structure integrity
+      root.attach({
+        //root is always made fullscreen
+        position: "absolute",
         left: 0,
         top: 0,
         width: window.innerWidth,
-        height: window.innerHeight
+        height: window.innerHeight,
       });
 
-      root.type = 'container';
+      root.type = "container";
       styleGrid(root);
       initContainer(root);
       root.counter = json.counter;
 
       //node is the object, parent is the Card
       function recurse(node, parent) {
-        node.children.forEach(c => {
+        node.children.forEach((c) => {
           let card = parent.addCard(c.id);
           card.attach(c.spec);
           card.type = c.type;
@@ -31519,7 +33206,7 @@
           card.autorun = c.autorun;
 
           initCard(card);
-          if(card.autorun) {
+          if (card.autorun) {
             new Function(card.source)();
           }
 
@@ -31531,26 +33218,6 @@
 
       return root;
     }
-  }
-
-  function buildRoot() {
-    window.root = new Card();
-    root.parent = {node: document.body}; // forces data structure integrity
-    root.attach({
-      position: 'absolute',
-      left: 0,
-      top: 0,
-      width: window.innerWidth,
-      height: window.innerHeight
-    });
-
-    root.type = 'container';
-    styleGrid(root);
-
-    initContainer(root);
-
-    root.counter = 1;
-    return root;
   }
 
 }());
